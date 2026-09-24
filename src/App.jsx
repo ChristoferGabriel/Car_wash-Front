@@ -1,7 +1,8 @@
+import { RouterProvider } from "react-router-dom";
+import { rotas } from "./routes/routes";
+
 export default function App() {
   return (
-    <>
-     <h1>Car Wash</h1>
-    </>
+    <RouterProvider router={rotas} />
   )
 }
