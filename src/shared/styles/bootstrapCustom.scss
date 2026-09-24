@@ -3,7 +3,7 @@
 $primary: #FFC107;   // destaque (amarelo)
 $dark:    #0C0C0C;   // fundo
 $light:   #FFFFFF;   // texto
-$body-bg: $dark;
-$body-color: $light;
+$body-bg: $light;
+$body-color: $dark;
 
 @import "bootstrap/scss/bootstrap";
