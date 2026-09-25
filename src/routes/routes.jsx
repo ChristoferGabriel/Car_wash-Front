@@ -8,7 +8,7 @@ export const rotas = createBrowserRouter([
     element: <PaginaPrincipal />,
   },
   {
-    path: '/paginaFormulario',
+    path: '/agendamentos',
     element: <PaginaFormulario />,
   }
 ]);

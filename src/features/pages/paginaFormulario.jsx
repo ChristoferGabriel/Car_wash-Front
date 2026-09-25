@@ -1,5 +1,13 @@
+import { Header } from "../../shared/componentes/header";
+
 export default function PaginaFormulario() {
   return (
-    <h1>Pagina Formulario</h1>
+    <Header 
+      logo="logo.webp" 
+      tituloNavegacao1="/" 
+      navegacao1="Página Principal" 
+      tituloNavegacao2="/agendamentos" 
+      navegacao2="Agendamentos" 
+    />
   )
 }
