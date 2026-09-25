@@ -1,5 +1,6 @@
 import { Footer } from "../../shared/componentes/footer";
 import { Header } from "../../shared/componentes/header";
+import { ConteudoPaginaPrincipal } from "../componentesEspecificos/conteudoPaginaPrincipal";
 
 export default function PaginaPrincipal () {
   return (
@@ -13,7 +14,7 @@ export default function PaginaPrincipal () {
         />
 
       <section className="flex-grow-1">
-        <h1>Pagina Principal</h1>
+        <ConteudoPaginaPrincipal />
       </section>
 
       <Footer logo={"logo.webp"}/>
