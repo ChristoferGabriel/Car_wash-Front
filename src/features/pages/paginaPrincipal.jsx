@@ -1,6 +1,14 @@
+import { Header } from "../../shared/componentes/header";
+
 export default function PaginaPrincipal () {
   return (
-    <h1>Pagina Principal</h1>
+    <Header 
+      logo="logo.webp"
+      tituloNavegacao1="/" 
+      navegacao1="Página Principal" 
+      tituloNavegacao2="/agendamentos" 
+      navegacao2="Agendamentos" 
+    />
   )
 }
   

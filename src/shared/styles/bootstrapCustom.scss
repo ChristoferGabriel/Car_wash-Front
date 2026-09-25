@@ -1,9 +1,9 @@
 // Paleta Car Wash Móvel, sobrescrevendo as variáveis do Bootstrap
 // ANTES de importar o Bootstrap — a ordem aqui é obrigatória
 $primary: #FFC107;   // destaque (amarelo)
-$dark:    #0C0C0C;   // fundo
+$dark:    #000000;   // fundo
 $light:   #FFFFFF;   // texto
-$body-bg: $dark;
-$body-color: $light;
+$body-bg: $light;
+$body-color: $dark;
 
 @import "bootstrap/scss/bootstrap";
