@@ -14,9 +14,9 @@ export const Footer = ({logo}) => {
     ]
 
     return (
-        <footer className="container-fluid bg-dark px-4 py-3">
+        <footer className="site-footer container-fluid bg-dark px-4 py-3">
             <div className="row">
-                <div className="col-12 d-flex flex-row align-items-center gap-2">
+                <div className="col-12 d-flex flex-column flex-md-row align-items-center gap-3">
                     <div className=" d-flex flex-row align-items-center gap-2">
                         <img className="d-block" src={logo} alt="Car Wash" height="60" />
                         <h5 className="text-primary mb-1">Car Wash</h5>

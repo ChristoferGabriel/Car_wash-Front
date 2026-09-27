@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Botao } from '../../shared/componentes/botao'
 import './ConteudoPaginaFormulario.css'
+import { FaCheck } from 'react-icons/fa'
 
 const servicosDisponiveis = [
   'Lavagem de Muros e Paredes Externas',
@@ -177,7 +178,7 @@ export const ConteudoPaginaFormulario = () => {
         </div>
 
         <div className="d-grid d-sm-flex justify-content-sm-center mt-4">
-          <Botao texto="Confirmar Agendamento" />
+          <Botao icone={<FaCheck />} texto="Confirmar Agendamento" />
         </div>
       </form>
     </div>
