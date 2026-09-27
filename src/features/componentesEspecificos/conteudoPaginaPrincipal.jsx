@@ -34,12 +34,12 @@ export const ConteudoPaginaPrincipal = () => {
     ]
 
     return (
-        <div>
-            <div className="d-flex flex-column align-items-center justify-content-center gap-3 mt-5">
-                <h2>Serviços</h2>
-                <p>Realizamos serviços de Limpeza, Revitalização e Conservação, que incluem os seguintes tópicos:</p>
+        <div className="home-content">
+            <div className="home-intro d-flex flex-column align-items-center justify-content-center gap-3">
+                <h2 className='fw-bold fs-4 fs-sm-3 fs-md-2 fs-lg-1'>Serviços</h2>
+                <p className="mb-0 fs-10 fs-sm-3 fs-md-2 fs-lg-1">Realizamos serviços de Limpeza, Revitalização e Conservação, que incluem os seguintes tópicos:</p>
             </div>
-            <div className="d-flex flex-wrap justify-content-center gap-3 mb-4">
+            <div className="services-grid mb-4">
                 {servicosDisponiveis.map((servico, index) => (
                     <Card 
                         key={index}
