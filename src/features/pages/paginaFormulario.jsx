@@ -1,5 +1,6 @@
 import { Header } from "../../shared/componentes/header";
 import { Footer } from "../../shared/componentes/footer";
+import { ConteudoPaginaFormulario } from "../componentesEspecificos/conteudoPaginaFormulario";
 
 export default function PaginaFormulario() {
   return (
@@ -13,7 +14,7 @@ export default function PaginaFormulario() {
       />
 
       <section className="flex-grow-1" >
-        <h1>Pagina Agendamentos</h1>
+        <ConteudoPaginaFormulario />
       </section>
 
       <Footer logo="logo.webp" />
