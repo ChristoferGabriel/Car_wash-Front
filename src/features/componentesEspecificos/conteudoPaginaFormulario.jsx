@@ -19,20 +19,23 @@ const estiloCampo = {
   borderColor: 'var(--bs-primary)'
 }
 
+const dadosAgendamentoInicial = {
+  nome: '',
+  telefone: '',
+  horario: '',
+  data: '',
+  endereco: '',
+  servico: '',
+  anexos: null
+}
+
 const formatarTelefone = (valor) => {
   return valor .replace(/\D/g, '') .substring(0, 11) .replace(/^(\d{2})(\d)/, '$1 $2') .replace(/(\d{5})(\d)/, '$1-$2')
 }
 
 export const ConteudoPaginaFormulario = () => {
-  const [dadosAgendamento, setDadosAgendamento] = useState({
-    nome: '',
-    telefone: '',
-    horario: '',
-    data: '',
-    endereco: '',
-    servico: '',
-    anexos: null
-  })
+  const [dadosAgendamento, setDadosAgendamento] = useState(dadosAgendamentoInicial)
+  const [erros, setErros] = useState({})
 
  const atualizarCampo = (campo) => (evento) => {
     let valor = campo === 'anexos' ? evento.target.files : evento.target.value
@@ -43,10 +46,50 @@ export const ConteudoPaginaFormulario = () => {
     setDadosAgendamento((atual) => ({ ...atual, [campo]: valor }))
   }
 
+  const validarValorObrigatorio = (valor, nomeCampo) => {
+    return valor.trim() === '' ? `${nomeCampo} é obrigatório` : ''
+  }
+
+  const atualizarCampoObrigatorio = (campo, nomeCampo) => (evento) => {
+    const valor = evento.target.value
+    atualizarCampo(campo)(evento)
+    setErros((atuais) => ({
+      ...atuais,
+      [campo]: validarValorObrigatorio(valor, nomeCampo)
+    }))
+  }
+
   const confirmarAgendamento = (evento) => {
     evento.preventDefault()
-    //integrar com o backend de agendamentos
-    console.log('Agendamento a confirmar:', dadosAgendamento)
+    const camposObrigatorios = {
+      nome: 'Nome',
+      telefone: 'Telefone',
+      horario: 'Horário',
+      data: 'Data',
+      endereco: 'Endereço',
+      servico: 'Serviço'
+    }
+    const novosErros = Object.fromEntries(
+      Object.entries(camposObrigatorios).map(([campo, nomeCampo]) => [
+        campo,
+        validarValorObrigatorio(dadosAgendamento[campo], nomeCampo)
+      ])
+    )
+
+    setErros(novosErros)
+    if (Object.values(novosErros).some(Boolean)) return
+
+    try {
+      // Simulação de envio para o backend
+      console.log('Enviando dados para o backend:', dadosAgendamento)
+      alert('Agendamento confirmado com sucesso!')
+      setDadosAgendamento(dadosAgendamentoInicial)
+      setErros({})
+    } catch (error) {
+      console.error('Erro ao enviar dados para o backend:', error)
+      alert('Ocorreu um erro ao confirmar o agendamento. Por favor, tente novamente.')
+      return
+    }
   }
 
   return (
@@ -57,6 +100,7 @@ export const ConteudoPaginaFormulario = () => {
 
       <form
         onSubmit={confirmarAgendamento}
+        noValidate
         className="rounded-4 p-3 p-sm-4 p-lg-5"
         style={{ backgroundColor: '#d4d4d4' }}
       >
@@ -66,13 +110,14 @@ export const ConteudoPaginaFormulario = () => {
             <input
               id="nome"
               type="text"
-              className="form-control form-control-lg rounded-3 border-1"
+              className={`form-control form-control-lg rounded-3 border-1 ${erros.nome ? 'is-invalid' : ''}`}
               style={estiloCampo}
               placeholder="Nome..."
               value={dadosAgendamento.nome}
-              onChange={atualizarCampo('nome')}
+              onChange={atualizarCampoObrigatorio('nome', 'Nome')}
               required
             />
+            {erros.nome && <div className="invalid-feedback">{erros.nome}</div>}
           </div>
 
           <div className="col-12 col-sm-6 col-lg-4">
@@ -80,13 +125,14 @@ export const ConteudoPaginaFormulario = () => {
             <input
               id="telefone"
               type="tel"
-              className="form-control form-control-lg rounded-3 border-1"
+              className={`form-control form-control-lg rounded-3 border-1 ${erros.telefone ? 'is-invalid' : ''}`}
               style={estiloCampo}
               placeholder="00 00000-0000"
               value={dadosAgendamento.telefone}
-              onChange={atualizarCampo('telefone')}
+              onChange={atualizarCampoObrigatorio('telefone', 'Telefone')}
               required
             />
+            {erros.telefone && <div className="invalid-feedback">{erros.telefone}</div>}
           </div>
 
           <div className="col-12 col-sm-6 col-lg-4">
@@ -94,12 +140,13 @@ export const ConteudoPaginaFormulario = () => {
             <input
               id="horario"
               type="time"
-              className="form-control form-control-lg rounded-3 border-1"
+              className={`form-control form-control-lg rounded-3 border-1 ${erros.horario ? 'is-invalid' : ''}`}
               style={estiloCampo}
               value={dadosAgendamento.horario}
-              onChange={atualizarCampo('horario')}
+              onChange={atualizarCampoObrigatorio('horario', 'Horário')}
               required
             />
+            {erros.horario && <div className="invalid-feedback">{erros.horario}</div>}
           </div>
 
           <div className="col-12 col-sm-6 col-lg-4">
@@ -107,12 +154,13 @@ export const ConteudoPaginaFormulario = () => {
             <input
               id="data"
               type="date"
-              className="form-control form-control-lg rounded-3 border-1"
+              className={`form-control form-control-lg rounded-3 border-1 ${erros.data ? 'is-invalid' : ''}`}
               style={estiloCampo}
               value={dadosAgendamento.data}
-              onChange={atualizarCampo('data')}
+              onChange={atualizarCampoObrigatorio('data', 'Data')}
               required
             />
+            {erros.data && <div className="invalid-feedback">{erros.data}</div>}
           </div>
 
           <div className="col-12 col-sm-6 col-lg-4">
@@ -120,23 +168,24 @@ export const ConteudoPaginaFormulario = () => {
             <input
               id="endereco"
               type="text"
-              className="form-control form-control-lg rounded-3 border-1"
+              className={`form-control form-control-lg rounded-3 border-1 ${erros.endereco ? 'is-invalid' : ''}`}
               style={estiloCampo}
               placeholder="Ex: Rua Bororos, 230"
               value={dadosAgendamento.endereco}
-              onChange={atualizarCampo('endereco')}
+              onChange={atualizarCampoObrigatorio('endereco', 'Endereço')}
               required
             />
+            {erros.endereco && <div className="invalid-feedback">{erros.endereco}</div>}
           </div>
 
           <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="servico" className="form-label">Serviço*</label>
             <select
               id="servico"
-              className="form-select form-select-lg rounded-3 border-1"
+              className={`form-select form-select-lg rounded-3 border-1 ${erros.servico ? 'is-invalid' : ''}`}
               style={estiloCampo}
               value={dadosAgendamento.servico}
-              onChange={atualizarCampo('servico')}
+              onChange={atualizarCampoObrigatorio('servico', 'Serviço')}
               required
             >
               <option value="" disabled>Selecione...</option>
@@ -144,6 +193,7 @@ export const ConteudoPaginaFormulario = () => {
                 <option key={servico} value={servico}>{servico}</option>
               ))}
             </select>
+            {erros.servico && <div className="invalid-feedback">{erros.servico}</div>}
           </div>
         </div>
 

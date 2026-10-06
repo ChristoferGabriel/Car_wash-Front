@@ -1,5 +1,19 @@
 /* ConteudoPaginaFormulario.css */
 
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: #b42318;
+  box-shadow: 0 0 0 0.2rem rgba(180, 35, 24, 0.15);
+  background-image: none;
+}
+
+.invalid-feedback {
+  color: #b42318;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 0.35rem;
+}
+
 .campo-anexos-custom {
   display: flex;
   cursor: pointer;
