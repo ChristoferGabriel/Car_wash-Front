@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Botao } from '../../shared/componentes/botao'
 import './ConteudoPaginaFormulario.css'
 import { FaCheck } from 'react-icons/fa'
+import { Alerta } from '../../shared/componentes/alerta'
 
 const servicosDisponiveis = [
   'Lavagem de Muros e Paredes Externas',
@@ -36,6 +37,7 @@ const formatarTelefone = (valor) => {
 export const ConteudoPaginaFormulario = () => {
   const [dadosAgendamento, setDadosAgendamento] = useState(dadosAgendamentoInicial)
   const [erros, setErros] = useState({})
+  const [alertaVisivel, setAlertaVisivel] = useState({ visivel: false, mensagem: "" })
 
  const atualizarCampo = (campo) => (evento) => {
     let valor = campo === 'anexos' ? evento.target.files : evento.target.value
@@ -81,19 +83,23 @@ export const ConteudoPaginaFormulario = () => {
 
     try {
       // Simulação de envio para o backend
-      console.log('Enviando dados para o backend:', dadosAgendamento)
-      alert('Agendamento confirmado com sucesso!')
+      console.log('Enviando dados:', dadosAgendamento)
+      setAlertaVisivel({ visivel: true, mensagem: "Agendamento confirmado com sucesso!" })
       setDadosAgendamento(dadosAgendamentoInicial)
-      setErros({})
     } catch (error) {
-      console.error('Erro ao enviar dados para o backend:', error)
-      alert('Ocorreu um erro ao confirmar o agendamento. Por favor, tente novamente.')
-      return
+      console.error('Erro ao enviar dados:', error)
+      setAlertaVisivel({ visivel: true, mensagem: "Ocorreu um erro ao confirmar o agendamento. Por favor, tente novamente." })
     }
   }
 
   return (
     <div className="px-3 px-sm-4 px-md-5 py-4 py-lg-5 mx-auto" style={{ maxWidth: '1320px' }}>
+      {alertaVisivel.visivel && (
+        <Alerta
+          mensagem={ alertaVisivel.mensagem }
+          onFechar={() => setAlertaVisivel(false)}
+        />
+      )}
       <h1 className="fw-bold text-center mb-4 fs-4 fs-sm-3 fs-md-2 fs-lg-1">
         Agendamento
       </h1>
