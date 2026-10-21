@@ -1,6 +1,6 @@
 import { FaWhatsapp, FaInstagram } from 'react-icons/fa'
 
-export const Footer = ({logo}) => {
+export const Footer = ({ logo }) => {
 
     const opcoesContato = [
         {

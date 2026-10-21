@@ -1,19 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Botao } from '../../shared/componentes/botao'
 import './ConteudoPaginaFormulario.css'
 import { FaCheck } from 'react-icons/fa'
 import { Alerta } from '../../shared/componentes/alerta'
-
-const servicosDisponiveis = [
-  'Lavagem de Muros e Paredes Externas',
-  'Lavagem de Portões e Grades',
-  'Lavagem de Fachadas e Revestimentos',
-  'Lavagem de Calçadas e Pisos Externos',
-  'Lavagem de Pedras e Revestimentos',
-  'Lavagem de Garagens e Áreas de Circulação',
-  'Lavagem de Áreas de Lazer',
-  'Lavagem de Áreas PET e Espaços Externos'
-]
+import { criarAgendamento, listarServicos } from '../../shared/rotas_api/rotas-api.service'
+import { usuarioAutenticado } from '../../shared/auth/authMock.service'
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -35,9 +26,53 @@ const formatarTelefone = (valor) => {
 }
 
 export const ConteudoPaginaFormulario = () => {
+  const [estaAutenticado, setEstaAutenticado] = useState(usuarioAutenticado)
+  const [servicosDisponiveis, setServicosDisponiveis] = useState([])
   const [dadosAgendamento, setDadosAgendamento] = useState(dadosAgendamentoInicial)
   const [erros, setErros] = useState({})
   const [alertaVisivel, setAlertaVisivel] = useState({ visivel: false, mensagem: "" })
+
+  useEffect(() => {
+    let componenteMontado = true
+
+    const carregarServicos = async () => {
+      try {
+        const resposta = await listarServicos()
+        const servicos = Array.isArray(resposta) ? resposta : resposta?.items
+
+        if (!Array.isArray(servicos)) {
+          throw new Error('A API retornou um formato inválido para os serviços.')
+        }
+
+        if (componenteMontado) {
+          setServicosDisponiveis(servicos)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar serviços:', error)
+        if (componenteMontado) {
+          setAlertaVisivel({
+            visivel: true,
+            mensagem: 'Não foi possível carregar os serviços. Tente novamente.'
+          })
+        }
+      }
+    }
+
+    carregarServicos()
+
+    return () => {
+      componenteMontado = false
+    }
+  }, [])
+
+  useEffect(() => {
+    const atualizarAutenticacao = () => {
+      setEstaAutenticado(usuarioAutenticado())
+    }
+
+    window.addEventListener('auth-change', atualizarAutenticacao)
+    return () => window.removeEventListener('auth-change', atualizarAutenticacao)
+  }, [])
 
  const atualizarCampo = (campo) => (evento) => {
     let valor = campo === 'anexos' ? evento.target.files : evento.target.value
@@ -61,8 +96,16 @@ export const ConteudoPaginaFormulario = () => {
     }))
   }
 
-  const confirmarAgendamento = (evento) => {
+  const confirmarAgendamento = async (evento) => {
     evento.preventDefault()
+    if (!estaAutenticado) {
+      setAlertaVisivel({
+        visivel: true,
+        mensagem: 'Para enviar um agendamento, faça login no site.'
+      })
+      return
+    }
+
     const camposObrigatorios = {
       nome: 'Nome',
       telefone: 'Telefone',
@@ -82,8 +125,7 @@ export const ConteudoPaginaFormulario = () => {
     if (Object.values(novosErros).some(Boolean)) return
 
     try {
-      // Simulação de envio para o backend
-      console.log('Enviando dados:', dadosAgendamento)
+      await criarAgendamento(dadosAgendamento)
       setAlertaVisivel({ visivel: true, mensagem: "Agendamento confirmado com sucesso!" })
       setDadosAgendamento(dadosAgendamentoInicial)
     } catch (error) {
@@ -97,12 +139,18 @@ export const ConteudoPaginaFormulario = () => {
       {alertaVisivel.visivel && (
         <Alerta
           mensagem={ alertaVisivel.mensagem }
-          onFechar={() => setAlertaVisivel(false)}
+          onFechar={() => setAlertaVisivel({ visivel: false, mensagem: "" })}
         />
       )}
       <h1 className="fw-bold text-center mb-4 fs-4 fs-sm-3 fs-md-2 fs-lg-1">
         Agendamento
       </h1>
+
+      {!estaAutenticado && (
+        <div className="alert alert-warning text-center" role="alert">
+          Para preencher e enviar o agendamento, faça login no site.
+        </div>
+      )}
 
       <form
         onSubmit={confirmarAgendamento}
@@ -110,7 +158,8 @@ export const ConteudoPaginaFormulario = () => {
         className="rounded-4 p-3 p-sm-4 p-lg-5"
         style={{ backgroundColor: '#d4d4d4' }}
       >
-        <div className="row g-3 g-sm-4 g-lg-5">
+        <fieldset disabled={!estaAutenticado} className="border-0 p-0 m-0">
+          <div className="row g-3 g-sm-4 g-lg-5">
           <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="nome" className="form-label">Nome*</label>
             <input
@@ -201,9 +250,9 @@ export const ConteudoPaginaFormulario = () => {
             </select>
             {erros.servico && <div className="invalid-feedback">{erros.servico}</div>}
           </div>
-        </div>
+          </div>
 
-        <div className="d-flex flex-column align-items-center mt-4">
+          <div className="d-flex flex-column align-items-center mt-4">
           <label className="form-label mb-1">Anexos (fotos)</label>
           
           <label
@@ -223,19 +272,20 @@ export const ConteudoPaginaFormulario = () => {
             </div>
           </label>
 
-          <input
-            id="anexos"
-            type="file"
-            accept="image/*"
-            multiple
-            className="d-none"
-            onChange={atualizarCampo('anexos')}
-          />
-        </div>
+            <input
+              id="anexos"
+              type="file"
+              accept="image/*"
+              multiple
+              className="d-none"
+              onChange={atualizarCampo('anexos')}
+            />
+          </div>
 
-        <div className="d-grid d-sm-flex justify-content-sm-center mt-4">
-          <Botao icone={<FaCheck />} texto="Confirmar Agendamento" />
-        </div>
+          <div className="d-grid d-sm-flex justify-content-sm-center mt-4">
+            <Botao icone={<FaCheck />} texto="Confirmar Agendamento" />
+          </div>
+        </fieldset>
       </form>
     </div>
   )

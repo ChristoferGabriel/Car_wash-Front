@@ -19,7 +19,7 @@ export const ConteudoPaginaPrincipal = () => {
     const navigate = useNavigate()
 
     const navegarParaAgendamento = () => {
-        navigate('/agendamentos')
+        navigate('/agendar')
     }
 
     const servicosDisponiveis = [
