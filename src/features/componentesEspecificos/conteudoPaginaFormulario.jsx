@@ -30,6 +30,7 @@ export const ConteudoPaginaFormulario = () => {
   const [servicosDisponiveis, setServicosDisponiveis] = useState([])
   const [dadosAgendamento, setDadosAgendamento] = useState(dadosAgendamentoInicial)
   const [erros, setErros] = useState({})
+  const [erroServicos, setErroServicos] = useState('')
   const [alertaVisivel, setAlertaVisivel] = useState({ visivel: false, mensagem: "" })
 
   useEffect(() => {
@@ -45,15 +46,13 @@ export const ConteudoPaginaFormulario = () => {
         }
 
         if (componenteMontado) {
+          setErroServicos('')
           setServicosDisponiveis(servicos)
         }
       } catch (error) {
         console.error('Erro ao carregar serviços:', error)
         if (componenteMontado) {
-          setAlertaVisivel({
-            visivel: true,
-            mensagem: 'Não foi possível carregar os serviços. Tente novamente.'
-          })
+          setErroServicos('Não foi possível carregar os serviços.')
         }
       }
     }
@@ -235,6 +234,11 @@ export const ConteudoPaginaFormulario = () => {
 
           <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="servico" className="form-label">Serviço*</label>
+            {erroServicos && (
+              <div className="alert alert-danger text-center py-2" role="alert">
+                {erroServicos}
+              </div>
+            )}
             <select
               id="servico"
               className={`form-select form-select-lg rounded-3 border-1 ${erros.servico ? 'is-invalid' : ''}`}
@@ -245,7 +249,7 @@ export const ConteudoPaginaFormulario = () => {
             >
               <option value="" disabled>Selecione...</option>
               {servicosDisponiveis.map((servico) => (
-                <option key={servico} value={servico}>{servico}</option>
+                <option key={servico.id} value={servico.id}>{servico.nome}</option>
               ))}
             </select>
             {erros.servico && <div className="invalid-feedback">{erros.servico}</div>}
