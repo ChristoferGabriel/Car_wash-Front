@@ -1,6 +1,9 @@
 import { useState } from "react"
 import { Botao } from "../../shared/componentes/botao"
 import { atualizarUsuarioMock, encerrarSessao } from "../../shared/auth/auth.service"
+import { Alerta } from "../../shared/componentes/alerta"
+import { useAlerta } from "../../shared/hooks/useAlerta"
+import { FaEye, FaEyeSlash } from "react-icons/fa"
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -8,7 +11,9 @@ const estiloCampo = {
 }
 
 export const ModalConta = ({ usuario, onClose }) => {
+  const { alerta, mostrarAlerta, fecharAlerta } = useAlerta()
   const [editando, setEditando] = useState(false)
+  const [senhaVisivel, setSenhaVisivel] = useState(false)
   const [dados, setDados] = useState({
     nome: usuario?.nome || '',
     email: usuario?.email || '',
@@ -49,10 +54,10 @@ export const ModalConta = ({ usuario, onClose }) => {
   const sair = async () => {
     try {
       await encerrarSessao()
+      mostrarAlerta('Sessão encerrada com sucesso!')
     } catch (error) {
       console.error('Erro ao encerrar sessão:', error)
     }
-    onClose()
   }
 
   return (
@@ -77,15 +82,36 @@ export const ModalConta = ({ usuario, onClose }) => {
                   ].map(([campo, rotulo, tipo]) => (
                     <div className="mb-3" key={campo}>
                       <label htmlFor={`conta-${campo}`} className="form-label">{rotulo}</label>
-                      <input
-                        id={`conta-${campo}`}
-                        type={tipo}
-                        placeholder={campo === 'senha' ? 'Deixe vazio para manter a senha atual' : undefined}
-                        className="form-control rounded-3 border-1"
-                        style={estiloCampo}
-                        value={dados[campo]}
-                        onChange={atualizarCampo(campo)}
-                      />
+                      {campo === 'senha' ? (
+                        <div className="input-group">
+                          <input
+                            id="conta-senha"
+                            type={senhaVisivel ? "text" : tipo}
+                            placeholder="Deixe vazio para manter a senha atual"
+                            className="form-control rounded-start-3 border-1"
+                            style={estiloCampo}
+                            value={dados[campo]}
+                            onChange={atualizarCampo(campo)}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary"
+                            onClick={() => setSenhaVisivel((visivel) => !visivel)}
+                            aria-label={senhaVisivel ? "Ocultar nova senha" : "Mostrar nova senha"}
+                          >
+                            {senhaVisivel ? <FaEyeSlash /> : <FaEye />}
+                          </button>
+                        </div>
+                      ) : (
+                        <input
+                          id={`conta-${campo}`}
+                          type={tipo}
+                          className="form-control rounded-3 border-1"
+                          style={estiloCampo}
+                          value={dados[campo]}
+                          onChange={atualizarCampo(campo)}
+                        />
+                      )}
                     </div>
                   ))}
                   <div className="d-flex gap-2">
@@ -107,6 +133,15 @@ export const ModalConta = ({ usuario, onClose }) => {
                       Sair
                     </button>
                   </div>
+                  {alerta.visivel && (
+                    <Alerta
+                      mensagem={alerta.mensagem}
+                      onFechar={() => {
+                        fecharAlerta()
+                        onClose()
+                      }}
+                    />
+                  )}
                 </>
               )}
             </div>

@@ -31,7 +31,7 @@ export const listarServicos = async () => {
   return data
 }
 
-export const criarAgendamento = async (dadosAgendamento) => {
+export const criarAgenda = async (dadosAgendamento) => {
   const { data } = await api.post('/api/agendamentos', dadosAgendamento)
   return data
 }

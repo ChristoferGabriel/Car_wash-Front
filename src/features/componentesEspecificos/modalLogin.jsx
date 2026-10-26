@@ -2,6 +2,9 @@ import { Botao } from "../../shared/componentes/botao"
 import { useState } from "react"
 import { autenticarUsuario } from "../../shared/auth/auth.service"
 import { ModalCadastro } from "./modalCadastro"
+import { Alerta } from "../../shared/componentes/alerta"
+import { useAlerta } from "../../shared/hooks/useAlerta"
+import { FaEye, FaEyeSlash } from "react-icons/fa"
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -13,6 +16,8 @@ export const ModalLogin = ({ onClose }) => {
   const [erroLogin, setErroLogin] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [cadastroAberto, setCadastroAberto] = useState(false)
+  const [senhaVisivel, setSenhaVisivel] = useState(false)
+  const { alerta, mostrarAlerta, fecharAlerta } = useAlerta()
 
   const atualizarCampo = (campo) => (evento) => {
     setDadosLogin((dadosAtuais) => ({
@@ -37,9 +42,9 @@ export const ModalLogin = ({ onClose }) => {
 
     setCarregando(true)
     try {
-      await autenticarUsuario(dadosLogin.email.trim(), dadosLogin.senha)
+      await autenticarUsuario(dadosLogin.email.trim(), dadosLogin.senha.trim())
+      mostrarAlerta('Login realizado com sucesso!')
       setErroLogin('')
-      onClose()
     } catch (error) {
       console.error('Erro ao fazer login:', error)
       setErroLogin(error.response?.data?.message || 'Email ou senha inválidos.')
@@ -85,16 +90,26 @@ export const ModalLogin = ({ onClose }) => {
                 </div>
                 <div className="mb-3">
                     <label htmlFor="senha" className="form-label">Senha</label>
-                    <input
-                      type="password"
-                      className="form-control rounded-3 border-1"
-                      style={estiloCampo}
-                      id="senha"
-                      value={dadosLogin.senha}
-                      onChange={atualizarCampo('senha')}
-                      placeholder="Digite sua senha"
-                      autoComplete="current-password"
-                    />
+                    <div className="input-group">
+                      <input
+                        type={senhaVisivel ? "text" : "password"}
+                        className="form-control rounded-start-3 border-1"
+                        style={estiloCampo}
+                        id="senha"
+                        value={dadosLogin.senha}
+                        onChange={atualizarCampo('senha')}
+                        placeholder="Digite sua senha"
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline-primary"
+                        onClick={() => setSenhaVisivel((visivel) => !visivel)}
+                        aria-label={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
+                      >
+                        {senhaVisivel ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
                 </div>
                 <Botao tamanho="w-100" texto={carregando ? "Entrando..." : "Entrar"} disabled={carregando} />
                 <button
@@ -109,6 +124,15 @@ export const ModalLogin = ({ onClose }) => {
           </div>
         </div>
       </div>
+      {alerta.visivel && (
+        <Alerta
+          mensagem={alerta.mensagem}
+          onFechar={() => {
+            fecharAlerta()
+            onClose()
+          }}
+        />
+      )}
       {cadastroAberto && (
         <ModalCadastro
           onClose={() => setCadastroAberto(false)}

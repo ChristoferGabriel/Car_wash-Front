@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Botao } from '../../shared/componentes/botao'
-import './ConteudoPaginaFormulario.css'
+import '../../shared/styles/conteudoPaginaFormulario.css'
 import { FaCheck } from 'react-icons/fa'
 import { Alerta } from '../../shared/componentes/alerta'
-import { criarAgendamento, listarServicos } from '../../shared/rotas_api/rotas-api.service'
-import { usuarioAutenticado } from '../../shared/auth/auth.service'
+import { criarAgenda, listarServicos } from '../../shared/rotas_api/rotas-api.service'
+import { usuarioAtual, usuarioAutenticado } from '../../shared/auth/auth.service'
+import { useAlerta } from '../../shared/hooks/useAlerta'
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -12,11 +13,11 @@ const estiloCampo = {
 }
 
 const dadosAgendamentoInicial = {
-  nome: '',
-  telefone: '',
   horario: '',
   data: '',
-  endereco: '',
+  rua: '',
+  numero: '',
+  bairro: '',
   servico: '',
   anexos: null
 }
@@ -31,7 +32,7 @@ export const ConteudoPaginaFormulario = () => {
   const [dadosAgendamento, setDadosAgendamento] = useState(dadosAgendamentoInicial)
   const [erros, setErros] = useState({})
   const [erroServicos, setErroServicos] = useState('')
-  const [alertaVisivel, setAlertaVisivel] = useState({ visivel: false, mensagem: "" })
+  const { alerta, mostrarAlerta, fecharAlerta } = useAlerta()
 
   useEffect(() => {
     let componenteMontado = true
@@ -83,7 +84,7 @@ export const ConteudoPaginaFormulario = () => {
   }
 
   const validarValorObrigatorio = (valor, nomeCampo) => {
-    return valor.trim() === '' ? `${nomeCampo} é obrigatório` : ''
+    return !valor?.trim() ? `${nomeCampo} é obrigatório` : ''
   }
 
   const atualizarCampoObrigatorio = (campo, nomeCampo) => (evento) => {
@@ -98,19 +99,16 @@ export const ConteudoPaginaFormulario = () => {
   const confirmarAgendamento = async (evento) => {
     evento.preventDefault()
     if (!estaAutenticado) {
-      setAlertaVisivel({
-        visivel: true,
-        mensagem: 'Para enviar um agendamento, faça login no site.'
-      })
+      mostrarAlerta('Para enviar um agendamento, faça login no site.')
       return
     }
 
     const camposObrigatorios = {
-      nome: 'Nome',
-      telefone: 'Telefone',
       horario: 'Horário',
       data: 'Data',
-      endereco: 'Endereço',
+      rua: 'Rua',
+      numero: 'Número',
+      bairro: 'Bairro',
       servico: 'Serviço'
     }
     const novosErros = Object.fromEntries(
@@ -124,21 +122,25 @@ export const ConteudoPaginaFormulario = () => {
     if (Object.values(novosErros).some(Boolean)) return
 
     try {
-      await criarAgendamento(dadosAgendamento)
-      setAlertaVisivel({ visivel: true, mensagem: "Agendamento confirmado com sucesso!" })
+      await criarAgenda({
+        ...dadosAgendamento,
+        nome: usuarioAtual.nome,
+        telefone: usuarioAtual.telefone
+      })
+      mostrarAlerta("Agendamento enviado com sucesso! Aguarde a confirmação da empresa, que entrará em contato.")
       setDadosAgendamento(dadosAgendamentoInicial)
     } catch (error) {
       console.error('Erro ao enviar dados:', error)
-      setAlertaVisivel({ visivel: true, mensagem: "Ocorreu um erro ao confirmar o agendamento. Por favor, tente novamente." })
+      mostrarAlerta("Ocorreu um erro ao enviar o agendamento. Por favor, tente novamente.")
     }
   }
 
   return (
     <div className="px-3 px-sm-4 px-md-5 py-4 py-lg-5 mx-auto" style={{ maxWidth: '1320px' }}>
-      {alertaVisivel.visivel && (
+      {alerta.visivel && (
         <Alerta
-          mensagem={ alertaVisivel.mensagem }
-          onFechar={() => setAlertaVisivel({ visivel: false, mensagem: "" })}
+          mensagem={alerta.mensagem}
+          onFechar={fecharAlerta}
         />
       )}
       <h1 className="fw-bold text-center mb-4 fs-4 fs-sm-3 fs-md-2 fs-lg-1">
@@ -159,36 +161,6 @@ export const ConteudoPaginaFormulario = () => {
       >
         <fieldset disabled={!estaAutenticado} className="border-0 p-0 m-0">
           <div className="row g-3 g-sm-4 g-lg-5">
-          <div className="col-12 col-sm-6 col-lg-4">
-            <label htmlFor="nome" className="form-label">Nome*</label>
-            <input
-              id="nome"
-              type="text"
-              className={`form-control form-control-lg rounded-3 border-1 ${erros.nome ? 'is-invalid' : ''}`}
-              style={estiloCampo}
-              placeholder="Nome..."
-              value={dadosAgendamento.nome}
-              onChange={atualizarCampoObrigatorio('nome', 'Nome')}
-              required
-            />
-            {erros.nome && <div className="invalid-feedback">{erros.nome}</div>}
-          </div>
-
-          <div className="col-12 col-sm-6 col-lg-4">
-            <label htmlFor="telefone" className="form-label">Telefone*</label>
-            <input
-              id="telefone"
-              type="tel"
-              className={`form-control form-control-lg rounded-3 border-1 ${erros.telefone ? 'is-invalid' : ''}`}
-              style={estiloCampo}
-              placeholder="00 00000-0000"
-              value={dadosAgendamento.telefone}
-              onChange={atualizarCampoObrigatorio('telefone', 'Telefone')}
-              required
-            />
-            {erros.telefone && <div className="invalid-feedback">{erros.telefone}</div>}
-          </div>
-
           <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="horario" className="form-label">Horário*</label>
             <input
@@ -218,21 +190,6 @@ export const ConteudoPaginaFormulario = () => {
           </div>
 
           <div className="col-12 col-sm-6 col-lg-4">
-            <label htmlFor="endereco" className="form-label">Endereço*</label>
-            <input
-              id="endereco"
-              type="text"
-              className={`form-control form-control-lg rounded-3 border-1 ${erros.endereco ? 'is-invalid' : ''}`}
-              style={estiloCampo}
-              placeholder="Ex: Rua Bororos, 230"
-              value={dadosAgendamento.endereco}
-              onChange={atualizarCampoObrigatorio('endereco', 'Endereço')}
-              required
-            />
-            {erros.endereco && <div className="invalid-feedback">{erros.endereco}</div>}
-          </div>
-
-          <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="servico" className="form-label">Serviço*</label>
             {erroServicos && (
               <div className="alert alert-danger text-center py-2" role="alert">
@@ -254,6 +211,52 @@ export const ConteudoPaginaFormulario = () => {
             </select>
             {erros.servico && <div className="invalid-feedback">{erros.servico}</div>}
           </div>
+
+           <div className="col-12 col-sm-6 col-lg-4">
+            <label htmlFor="rua" className="form-label">Rua*</label>
+            <input
+              id="rua"
+              type="text"
+              className={`form-control form-control-lg rounded-3 border-1 ${erros.rua ? 'is-invalid' : ''}`}
+              style={estiloCampo}
+              placeholder="Ex: Rua Eduardo Sprada"
+              value={dadosAgendamento.rua}
+              onChange={atualizarCampoObrigatorio('rua', 'Rua')}
+              required
+            />
+            {erros.rua && <div className="invalid-feedback">{erros.rua}</div>}
+          </div>
+
+           <div className="col-12 col-sm-6 col-lg-4">
+            <label htmlFor="numero" className="form-label">Número*</label>
+            <input
+              id="numero"
+              type="text"
+              className={`form-control form-control-lg rounded-3 border-1 ${erros.numero ? 'is-invalid' : ''}`}
+              style={estiloCampo}
+              placeholder="Ex: 230"
+              value={dadosAgendamento.numero}
+              onChange={atualizarCampoObrigatorio('numero', 'Número')}
+              required
+            />
+            {erros.numero && <div className="invalid-feedback">{erros.numero}</div>}
+          </div>
+
+           <div className="col-12 col-sm-6 col-lg-4">
+            <label htmlFor="bairro" className="form-label">Bairro*</label>
+            <input
+              id="bairro"
+              type="text"
+              className={`form-control form-control-lg rounded-3 border-1 ${erros.bairro ? 'is-invalid' : ''}`}
+              style={estiloCampo}
+              placeholder="Ex: Ecoville"
+              value={dadosAgendamento.bairro}
+              onChange={atualizarCampoObrigatorio('bairro', 'Bairro')}
+              required
+            />
+            {erros.bairro && <div className="invalid-feedback">{erros.bairro}</div>}
+          </div>
+
           </div>
 
           <div className="d-flex flex-column align-items-center mt-4">
