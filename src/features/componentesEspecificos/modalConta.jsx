@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Botao } from "../../shared/componentes/botao"
-import { atualizarUsuarioMock, encerrarSessao } from "../../shared/auth/authMock.service"
+import { atualizarUsuarioMock, encerrarSessao } from "../../shared/auth/auth.service"
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -24,6 +24,7 @@ export const ModalConta = ({ usuario, onClose }) => {
 
   const salvar = (evento) => {
     evento.preventDefault()
+
     if (!dados.nome.trim() || !dados.email.trim() || !dados.telefone.trim()) {
       setErro('Preencha todos os campos para salvar.')
       return
@@ -37,7 +38,7 @@ export const ModalConta = ({ usuario, onClose }) => {
       return
     }
 
-    const dadosParaSalvar = { ...dados }
+    const dadosParaSalvar = { ...dados, email: dados.email.trim().toLowerCase() }
     if (!dadosParaSalvar.senha) {
       delete dadosParaSalvar.senha
     }
@@ -45,8 +46,12 @@ export const ModalConta = ({ usuario, onClose }) => {
     setEditando(false)
   }
 
-  const sair = () => {
-    encerrarSessao()
+  const sair = async () => {
+    try {
+      await encerrarSessao()
+    } catch (error) {
+      console.error('Erro ao encerrar sessão:', error)
+    }
     onClose()
   }
 
@@ -64,14 +69,17 @@ export const ModalConta = ({ usuario, onClose }) => {
               {editando ? (
                 <form onSubmit={salvar} noValidate>
                   {erro && <div className="alert alert-danger py-2" role="alert">{erro}</div>}
-                  {['nome', 'email', 'telefone', 'senha'].map((campo) => (
+                  {[
+                    ['nome', 'Nome', 'text'],
+                    ['email', 'Email', 'email'],
+                    ['telefone', 'Telefone', 'tel'],
+                    ['senha', 'Nova senha', 'password']
+                  ].map(([campo, rotulo, tipo]) => (
                     <div className="mb-3" key={campo}>
-                      <label htmlFor={`conta-${campo}`} className="form-label">
-                        {campo[0].toUpperCase() + campo.slice(1)}
-                      </label>
+                      <label htmlFor={`conta-${campo}`} className="form-label">{rotulo}</label>
                       <input
                         id={`conta-${campo}`}
-                        type={campo === 'email' ? 'email' : campo === 'senha' ? 'password' : 'text'}
+                        type={tipo}
                         placeholder={campo === 'senha' ? 'Deixe vazio para manter a senha atual' : undefined}
                         className="form-control rounded-3 border-1"
                         style={estiloCampo}
@@ -80,13 +88,18 @@ export const ModalConta = ({ usuario, onClose }) => {
                       />
                     </div>
                   ))}
-                  <Botao tamanho="w-100" texto="Salvar alterações" />
+                  <div className="d-flex gap-2">
+                    <Botao tamanho="w-100" texto="Salvar alterações" />
+                    <button type="button" className="btn btn-outline-secondary w-100" onClick={() => setEditando(false)}>
+                      Cancelar
+                    </button>
+                  </div>
                 </form>
               ) : (
                 <>
-                  <p><strong>Nome:</strong> {usuario?.nome}</p>
+                  <p><strong>Nome:</strong> {usuario?.nome || 'Não informado'}</p>
                   <p><strong>Email:</strong> {usuario?.email}</p>
-                  <p><strong>Telefone:</strong> {usuario?.telefone}</p>
+                  <p><strong>Telefone:</strong> {usuario?.telefone || 'Não informado'}</p>
                   <p><strong>Perfil:</strong> {usuario?.perfil}</p>
                   <div className="d-flex gap-2">
                     <Botao tamanho="w-100" texto="Editar dados" onClick={() => setEditando(true)} type="button" />

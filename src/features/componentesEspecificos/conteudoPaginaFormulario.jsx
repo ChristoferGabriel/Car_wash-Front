@@ -4,7 +4,7 @@ import './ConteudoPaginaFormulario.css'
 import { FaCheck } from 'react-icons/fa'
 import { Alerta } from '../../shared/componentes/alerta'
 import { criarAgendamento, listarServicos } from '../../shared/rotas_api/rotas-api.service'
-import { usuarioAutenticado } from '../../shared/auth/authMock.service'
+import { usuarioAutenticado } from '../../shared/auth/auth.service'
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',

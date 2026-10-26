@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { ModalConta } from "../../features/componentesEspecificos/modalConta"
-import { usuarioAtual, usuarioAutenticado } from "../auth/authMock.service"
+import { usuarioAtual, usuarioAutenticado } from "../auth/auth.service"
 
 export const Header = ({ logo, navegacao1, tituloNavegacao1, navegacao2, tituloNavegacao2, onLoginClick }) => {
   const [contaAberta, setContaAberta] = useState(false)

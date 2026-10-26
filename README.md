@@ -254,6 +254,8 @@ As chamadas atuais ficam em
 | --- | --- | --- |
 | `GET` | `/api/servicos` | Lista os serviços na página principal e no formulário |
 | `POST` | `/api/agendamentos` | Envia os dados do formulário de agendamento |
+| `POST` | `/api/login` | Autentica o usuário e retorna o token |
+| `POST` | `/api/logout` | Encerra a sessão autenticada |
 
 ### Formato esperado para serviços
 
@@ -294,34 +296,55 @@ implementar essa rota.
 
 ## Autenticação atual
 
-O login atual é mockado no próprio frontend em
-[authMock.service.js](./src/shared/auth/authMock.service.js). Ele usa
-`sessionStorage` e não chama `/api/login`.
+O login e o logout usam a API documentada:
 
-Usuários disponíveis para desenvolvimento:
+- `POST /api/auth/login`;
+- `POST /api/auth/logout`.
 
-```text
-Administrador
-Email: admin@carwash.com
-Senha: admin123
+O frontend guarda o token Sanctum no `sessionStorage` e o cliente Axios adiciona
+automaticamente:
 
-Usuário normal
-Email: usuario@carwash.com
-Senha: usuario123
+```http
+Authorization: Bearer <token>
+Accept: application/json
 ```
 
-Essa autenticação serve apenas para testar a interface. Ela não deve ser usada
-em produção, pois as credenciais ficam no código do navegador.
+O backend documentado cria o administrador por meio das variáveis
+`ADMIN_EMAIL` e `ADMIN_PASSWORD` do próprio projeto Laravel. O frontend não
+valida credenciais localmente: o login depende da resposta da API ou do Prism.
 
-O backend documentado possui autenticação real com Sanctum, mas a integração
-do token ainda precisa ser feita no frontend. Quando isso for implementado,
-o fluxo deverá:
+Não há endpoint de cadastro de usuários no contrato atual. Para manter a tela
+testável, o cadastro continua mockado no frontend e é salvo no `localStorage`.
+Esse cadastro não cria o usuário no backend e, portanto, não permite login na
+API. O login continua sendo feito exclusivamente com as credenciais disponíveis
+no backend/Prism.
 
-1. enviar `POST /api/login`;
-2. guardar o token retornado;
-3. enviar `Authorization: Bearer <token>` nas rotas protegidas;
-4. chamar `POST /api/logout` ao sair;
-5. tratar respostas `401`, `422` e `429`.
+O modal de conta também possui edição mockada no frontend. As alterações de
+nome, email, telefone e senha são armazenadas na sessão atual e, quando
+aplicável, no `localStorage`. Elas não são enviadas para o backend, pois o
+contrato atual não possui endpoint de edição de usuário.
+
+### Fluxo de autenticação para testes
+
+1. Inicie o Prism com um contrato que contenha `POST /api/auth/login` e
+   `POST /api/auth/logout`.
+2. Abra o modal de login no frontend.
+3. Use as credenciais configuradas no backend ou representadas pelos exemplos
+   do contrato OpenAPI.
+4. Após o login, o token fica no `sessionStorage` com a chave
+   `car-wash-token`.
+5. Para testar o cadastro, clique em `Criar cadastro`. O usuário será salvo
+   apenas no `localStorage` e não poderá autenticar na API automaticamente.
+6. Para testar a edição, abra `Conta`, clique em `Editar dados` e salve as
+   alterações. Essa operação também é exclusivamente local.
+
+Para limpar os dados de teste no navegador, remova as chaves:
+
+```text
+car-wash-token
+car-wash-usuario-atual
+car-wash-usuarios-cadastrados
+```
 
 ## Scripts disponíveis
 
@@ -375,7 +398,7 @@ src/
 │   └── routes.jsx
 ├── shared/
 │   ├── auth/
-│   │   └── authMock.service.js
+│   │   └── auth.service.js
 │   ├── componentes/
 │   ├── rotas_api/
 │   │   └── rotas-api.service.js

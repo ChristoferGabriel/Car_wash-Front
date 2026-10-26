@@ -1,43 +1,53 @@
-import { Botao } from "../../shared/componentes/botao"
 import { useState } from "react"
+import { Botao } from "../../shared/componentes/botao"
+import { cadastrarUsuarioMock } from "../../shared/auth/auth.service"
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
   borderColor: 'var(--bs-primary)'
 }
 
-export const ModalCadastro = ({ onClose }) => {
-  const [dadosCadastro, setDadosCadastro] = useState({
+export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
+  const [dados, setDados] = useState({
     nome: '',
     email: '',
     telefone: '',
     senha: ''
   })
-  const [erros, setErros] = useState({})
+  const [erro, setErro] = useState('')
 
   const atualizarCampo = (campo) => (evento) => {
-    setDadosCadastro((dadosAtuais) => ({
-      ...dadosAtuais,
-      [campo]: evento.target.value
-    }))
-    setErros((errosAtuais) => ({ ...errosAtuais, [campo]: '' }))
+    setDados((dadosAtuais) => ({ ...dadosAtuais, [campo]: evento.target.value }))
+    setErro('')
   }
 
-  const cadastrarUsuario = (evento) => {
+  const cadastrar = (evento) => {
     evento.preventDefault()
 
-    const novosErros = {
-      nome: dadosCadastro.nome.trim() ? '' : 'Informe o nome.',
-      email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dadosCadastro.email)
-        ? ''
-        : 'Informe um email válido.',
-      telefone: dadosCadastro.telefone.trim() ? '' : 'Informe o telefone.',
-      senha: dadosCadastro.senha.length >= 6
-        ? ''
-        : 'A senha deve ter pelo menos 6 caracteres.'
+    if (Object.values(dados).some((valor) => !valor.trim())) {
+      setErro('Preencha todos os campos.')
+      return
     }
 
-    setErros(novosErros)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email)) {
+      setErro('Informe um email válido.')
+      return
+    }
+
+    if (dados.senha.length < 6) {
+      setErro('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
+
+    try {
+      cadastrarUsuarioMock({
+        ...dados,
+        email: dados.email.trim().toLowerCase()
+      })
+      onCadastroSucesso(dados.email.trim().toLowerCase())
+    } catch (error) {
+      setErro(error.message)
+    }
   }
 
   return (
@@ -48,78 +58,31 @@ export const ModalCadastro = ({ onClose }) => {
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title">Cadastro de usuário</h5>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={onClose}
-                aria-label="Fechar"
-              />
+              <button type="button" className="btn-close" onClick={onClose} aria-label="Fechar" />
             </div>
             <div className="modal-body">
-              <form onSubmit={cadastrarUsuario} noValidate>
-                <div className="mb-3">
-                  <label htmlFor="cadastro-nome" className="form-label">Nome</label>
-                  <input
-                    id="cadastro-nome"
-                    name="nome"
-                    type="text"
-                    className={`form-control rounded-3 border-1 ${erros.nome ? 'is-invalid' : ''}`}
-                    style={estiloCampo}
-                    value={dadosCadastro.nome}
-                    onChange={atualizarCampo('nome')}
-                    placeholder="Digite seu nome"
-                    autoComplete="name"
-                  />
-                  {erros.nome && <div className="invalid-feedback">{erros.nome}</div>}
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="cadastro-email" className="form-label">Email</label>
-                  <input
-                    id="cadastro-email"
-                    name="email"
-                    type="email"
-                    className={`form-control rounded-3 border-1 ${erros.email ? 'is-invalid' : ''}`}
-                    style={estiloCampo}
-                    value={dadosCadastro.email}
-                    onChange={atualizarCampo('email')}
-                    placeholder="Digite seu email"
-                    autoComplete="email"
-                  />
-                  {erros.email && <div className="invalid-feedback">{erros.email}</div>}
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="cadastro-telefone" className="form-label">Telefone</label>
-                  <input
-                    id="cadastro-telefone"
-                    name="telefone"
-                    type="tel"
-                    className={`form-control rounded-3 border-1 ${erros.telefone ? 'is-invalid' : ''}`}
-                    style={estiloCampo}
-                    value={dadosCadastro.telefone}
-                    onChange={atualizarCampo('telefone')}
-                    placeholder="Digite seu telefone"
-                    autoComplete="tel"
-                  />
-                  {erros.telefone && <div className="invalid-feedback">{erros.telefone}</div>}
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="cadastro-senha" className="form-label">Senha</label>
-                  <input
-                    id="cadastro-senha"
-                    name="senha"
-                    type="password"
-                    className={`form-control rounded-3 border-1 ${erros.senha ? 'is-invalid' : ''}`}
-                    style={estiloCampo}
-                    value={dadosCadastro.senha}
-                    onChange={atualizarCampo('senha')}
-                    placeholder="Digite sua senha"
-                    autoComplete="new-password"
-                  />
-                  {erros.senha && <div className="invalid-feedback">{erros.senha}</div>}
-                </div>
-                  <div style={{ margin: '10px 0' }}>
-                    <Botao tamanho="w-100" texto="Cadastrar" />
+              <form onSubmit={cadastrar} noValidate>
+                {erro && <div className="alert alert-danger py-2" role="alert">{erro}</div>}
+                {[
+                  ['nome', 'Nome', 'text'],
+                  ['email', 'Email', 'email'],
+                  ['telefone', 'Telefone', 'tel'],
+                  ['senha', 'Senha', 'password']
+                ].map(([campo, rotulo, tipo]) => (
+                  <div className="mb-3" key={campo}>
+                    <label htmlFor={`cadastro-${campo}`} className="form-label">{rotulo}</label>
+                    <input
+                      id={`cadastro-${campo}`}
+                      type={tipo}
+                      className="form-control rounded-3 border-1"
+                      style={estiloCampo}
+                      value={dados[campo]}
+                      onChange={atualizarCampo(campo)}
+                      autoComplete={campo === 'senha' ? 'new-password' : campo}
+                    />
                   </div>
+                ))}
+                <Botao tamanho="w-100" texto="Confirmar cadastro" />
               </form>
             </div>
           </div>

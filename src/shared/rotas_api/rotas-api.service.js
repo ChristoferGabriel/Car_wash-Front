@@ -8,6 +8,24 @@ const api = axios.create({
   }
 })
 
+api.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem('car-wash-token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+export const fazerLogin = async (email, password) => {
+  const { data } = await api.post('/api/auth/login', { email, password })
+  return data
+}
+
+export const fazerLogout = async () => {
+  const { data } = await api.post('/api/auth/logout')
+  return data
+}
+
 export const listarServicos = async () => {
   const { data } = await api.get('/api/servicos')
   return data

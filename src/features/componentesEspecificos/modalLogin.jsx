@@ -1,7 +1,7 @@
 import { Botao } from "../../shared/componentes/botao"
 import { useState } from "react"
+import { autenticarUsuario } from "../../shared/auth/auth.service"
 import { ModalCadastro } from "./modalCadastro"
-import { autenticarUsuarioMock } from "../../shared/auth/authMock.service"
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -9,9 +9,10 @@ const estiloCampo = {
 }
 
 export const ModalLogin = ({ onClose }) => {
-  const [cadastroAberto, setCadastroAberto] = useState(false)
   const [dadosLogin, setDadosLogin] = useState({ email: '', senha: '' })
   const [erroLogin, setErroLogin] = useState('')
+  const [carregando, setCarregando] = useState(false)
+  const [cadastroAberto, setCadastroAberto] = useState(false)
 
   const atualizarCampo = (campo) => (evento) => {
     setDadosLogin((dadosAtuais) => ({
@@ -21,7 +22,7 @@ export const ModalLogin = ({ onClose }) => {
     setErroLogin('')
   }
 
-  const validarLogin = (evento) => {
+  const validarLogin = async (evento) => {
     evento.preventDefault()
 
     if (!dadosLogin.email.trim() || !dadosLogin.senha) {
@@ -34,23 +35,22 @@ export const ModalLogin = ({ onClose }) => {
       return
     }
 
-    const usuario = autenticarUsuarioMock(dadosLogin.email.trim(), dadosLogin.senha)
-    if (!usuario) {
-      setErroLogin('Email ou senha inválidos.')
-      return
+    setCarregando(true)
+    try {
+      await autenticarUsuario(dadosLogin.email.trim(), dadosLogin.senha)
+      setErroLogin('')
+      onClose()
+    } catch (error) {
+      console.error('Erro ao fazer login:', error)
+      setErroLogin(error.response?.data?.message || 'Email ou senha inválidos.')
+    } finally {
+      setCarregando(false)
     }
-
-    setErroLogin('')
-    onClose()
-  }
-
-  if (cadastroAberto) {
-    return <ModalCadastro onClose={() => setCadastroAberto(false)} />
   }
 
   return (
     <>
-      <div className="modal-backdrop show" onClick={onClose} />
+      {!cadastroAberto && <div className="modal-backdrop show" onClick={onClose} />}
       <div className="modal show d-block" tabIndex="-1" role="dialog" aria-modal="true">
         <div className="modal-dialog modal-dialog-centered" onClick={(evento) => evento.stopPropagation()}>
           <div className="modal-content">
@@ -96,19 +96,29 @@ export const ModalLogin = ({ onClose }) => {
                       autoComplete="current-password"
                     />
                 </div>
-                    <Botao tamanho="w-100" texto="Entrar" />
-                    <button
-                      type="button"
-                      className="btn btn-link d-block mx-auto text-center"
-                      onClick={() => setCadastroAberto(true)}
-                    >
-                      Não tem uma conta? Cadastre-se
-                    </button>
+                <Botao tamanho="w-100" texto={carregando ? "Entrando..." : "Entrar"} disabled={carregando} />
+                <button
+                  type="button"
+                  className="btn btn-link w-100 mt-2"
+                  onClick={() => setCadastroAberto(true)}
+                >
+                  Criar cadastro
+                </button>
               </form>
             </div>
           </div>
         </div>
       </div>
+      {cadastroAberto && (
+        <ModalCadastro
+          onClose={() => setCadastroAberto(false)}
+          onCadastroSucesso={(email) => {
+            setDadosLogin((dadosAtuais) => ({ ...dadosAtuais, email }))
+            setCadastroAberto(false)
+            setErroLogin('Cadastro realizado localmente. Entre com as credenciais do backend.')
+          }}
+        />
+      )}
     </>
   )
 }
