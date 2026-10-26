@@ -23,7 +23,10 @@ export const ModalConta = ({ usuario, onClose }) => {
   const [erro, setErro] = useState('')
 
   const atualizarCampo = (campo) => (evento) => {
-    setDados((dadosAtuais) => ({ ...dadosAtuais, [campo]: evento.target.value }))
+    const valor = campo === 'telefone'
+      ? evento.target.value.replace(/\D/g, '').slice(0, 11)
+      : evento.target.value
+    setDados((dadosAtuais) => ({ ...dadosAtuais, [campo]: valor }))
     setErro('')
   }
 
@@ -36,6 +39,10 @@ export const ModalConta = ({ usuario, onClose }) => {
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email)) {
       setErro('Informe um email válido.')
+      return
+    }
+    if (dados.telefone.length !== 11) {
+      setErro('Informe um telefone com exatamente 11 dígitos.')
       return
     }
     if (dados.senha && dados.senha.length < 6) {
@@ -106,6 +113,8 @@ export const ModalConta = ({ usuario, onClose }) => {
                         <input
                           id={`conta-${campo}`}
                           type={tipo}
+                          inputMode={campo === 'telefone' ? 'numeric' : undefined}
+                          maxLength={campo === 'telefone' ? 11 : undefined}
                           className="form-control rounded-3 border-1"
                           style={estiloCampo}
                           value={dados[campo]}

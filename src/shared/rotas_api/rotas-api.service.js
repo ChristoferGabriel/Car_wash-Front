@@ -26,6 +26,11 @@ export const fazerLogout = async () => {
   return data
 }
 
+export const cadastrarUsuario = async (dadosUsuario) => {
+  const { data } = await api.post('/api/auth/register', dadosUsuario)
+  return data
+}
+
 export const listarServicos = async () => {
   const { data } = await api.get('/api/servicos')
   return data

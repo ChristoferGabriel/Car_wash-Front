@@ -139,7 +139,7 @@ export const ModalLogin = ({ onClose }) => {
           onCadastroSucesso={(email) => {
             setDadosLogin((dadosAtuais) => ({ ...dadosAtuais, email }))
             setCadastroAberto(false)
-            setErroLogin('Cadastro realizado localmente. Entre com as credenciais do backend.')
+            setErroLogin('')
           }}
         />
       )}

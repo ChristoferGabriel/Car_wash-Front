@@ -32,11 +32,14 @@ export const ConteudoPaginaPrincipal = () => {
     const navigate = useNavigate()
     const [servicosDisponiveis, setServicosDisponiveis] = useState([])
     const [erroServicos, setErroServicos] = useState('')
+    const [carregando, setCarregando] = useState(false)
 
+    // CARREGA LISTA DE SERVICOS
     useEffect(() => {
         let componenteMontado = true
 
         const carregarServicos = async () => {
+            setCarregando(true)
             try {
                 const resposta = await listarServicos()
                 const servicos = Array.isArray(resposta) ? resposta : resposta?.items
@@ -53,6 +56,8 @@ export const ConteudoPaginaPrincipal = () => {
                 if (componenteMontado) {
                     setErroServicos('Não foi possível carregar os serviços.')
                 }
+            } finally {
+                setCarregando(false)
             }
         }
 
@@ -76,6 +81,11 @@ export const ConteudoPaginaPrincipal = () => {
             {erroServicos && (
                 <div className="alert alert-danger text-center" role="alert">
                     {erroServicos}
+                </div>
+            )}
+            {carregando && (
+                <div className="alert alert-info text-center" role="alert">
+                    Carregando serviços...
                 </div>
             )}
             <div className="services-grid mb-4">

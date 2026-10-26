@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { Botao } from "../../shared/componentes/botao"
-import { cadastrarUsuarioMock } from "../../shared/auth/auth.service"
+import { cadastrarUsuario } from "../../shared/auth/auth.service"
+import { useAlerta } from "../../shared/hooks/useAlerta"
+import { Alerta } from "../../shared/componentes/alerta"
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -8,20 +10,26 @@ const estiloCampo = {
 }
 
 export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
+  const { mostrarAlerta, fecharAlerta, alerta } = useAlerta()
   const [dados, setDados] = useState({
     nome: '',
     email: '',
     telefone: '',
     senha: ''
   })
+  const [aceiteTermos, setAceiteTermos] = useState(false)
+  const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
 
   const atualizarCampo = (campo) => (evento) => {
-    setDados((dadosAtuais) => ({ ...dadosAtuais, [campo]: evento.target.value }))
+    const valor = campo === 'telefone'
+      ? evento.target.value.replace(/\D/g, '').slice(0, 11)
+      : evento.target.value
+    setDados((dadosAtuais) => ({ ...dadosAtuais, [campo]: valor }))
     setErro('')
   }
 
-  const cadastrar = (evento) => {
+  const cadastrar = async (evento) => {
     evento.preventDefault()
 
     if (Object.values(dados).some((valor) => !valor.trim())) {
@@ -29,24 +37,39 @@ export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
       return
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email.trim())) {
       setErro('Informe um email válido.')
       return
     }
 
-    if (dados.senha.length < 6) {
-      setErro('A senha deve ter pelo menos 6 caracteres.')
+    if (dados.telefone.length !== 11) {
+      setErro('Informe um telefone com exatamente 11 dígitos.')
       return
     }
 
+    if (dados.senha.length < 8) {
+      setErro('A senha deve ter pelo menos 8 caracteres.')
+      return
+    }
+
+    if (!aceiteTermos) {
+      setErro('É necessário aceitar os termos de uso.')
+      return
+    }
+
+    setCarregando(true)
     try {
-      cadastrarUsuarioMock({
-        ...dados,
-        email: dados.email.trim().toLowerCase()
+      const { senha, ...dadosSemSenha } = dados
+      await cadastrarUsuario({
+        ...dadosSemSenha,
+        password: senha,
+        aceite_termos: true
       })
-      onCadastroSucesso(dados.email.trim().toLowerCase())
+      mostrarAlerta('Cadastro realizado com sucesso!', 'success')
     } catch (error) {
-      setErro(error.message)
+      setErro(error.response?.data?.message || error.message || 'Não foi possível realizar o cadastro.')
+    } finally {
+      setCarregando(false)
     }
   }
 
@@ -74,6 +97,8 @@ export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
                     <input
                       id={`cadastro-${campo}`}
                       type={tipo}
+                      inputMode={campo === 'telefone' ? 'numeric' : undefined}
+                      maxLength={campo === 'telefone' ? 11 : undefined}
                       className="form-control rounded-3 border-1"
                       style={estiloCampo}
                       value={dados[campo]}
@@ -82,9 +107,37 @@ export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
                     />
                   </div>
                 ))}
-                <Botao tamanho="w-100" texto="Confirmar cadastro" />
+                <div className="form-check mb-3">
+                  <input
+                    id="aceite-termos"
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={aceiteTermos}
+                    onChange={(evento) => {
+                      setAceiteTermos(evento.target.checked)
+                      setErro('')
+                    }}
+                  />
+                  <label htmlFor="aceite-termos" className="form-check-label">
+                    Aceito os termos de uso.
+                  </label>
+                </div>
+                <Botao
+                  tamanho="w-100"
+                  texto={carregando ? "Cadastrando..." : "Confirmar cadastro"}
+                  disabled={carregando}
+                />
               </form>
             </div>
+             {alerta.visivel && (
+                <Alerta
+                  mensagem={alerta.mensagem}
+                  onFechar={() => {
+                    fecharAlerta()
+                    onCadastroSucesso(dados.email.trim().toLowerCase())
+                  }}
+                />
+              )}
           </div>
         </div>
       </div>

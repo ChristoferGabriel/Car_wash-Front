@@ -1,4 +1,8 @@
-import { fazerLogin, fazerLogout } from '../rotas_api/rotas-api.service'
+import {
+  cadastrarUsuario as cadastrarUsuarioApi,
+  fazerLogin,
+  fazerLogout
+} from '../rotas_api/rotas-api.service'
 
 const CHAVE_TOKEN = 'car-wash-token'
 const CHAVE_USUARIO = 'car-wash-usuario-atual'
@@ -19,7 +23,7 @@ export const autenticarUsuario = async (email, senha) => {
     nome: resposta.cliente?.nome || '',
     email: resposta.cliente?.email || email,
     telefone: resposta.cliente?.telefone || '',
-    perfil: 'admin'
+    perfil: resposta.cliente?.perfil || ''
   }
 
   sessionStorage.setItem(CHAVE_TOKEN, resposta.token)
@@ -33,29 +37,19 @@ export const usuarioAtual = () => {
   return usuario ? JSON.parse(usuario) : null
 }
 
-export const cadastrarUsuarioMock = (dadosUsuario) => {
-  const usuarios = JSON.parse(
-    localStorage.getItem(CHAVE_USUARIOS_CADASTRADOS) || '[]'
-  )
+export const cadastrarUsuario = async (dadosUsuario) => {
+  const resposta = await cadastrarUsuarioApi(dadosUsuario)
 
-  if (usuarios.some((usuario) => usuario.email === dadosUsuario.email)) {
-    throw new Error('Já existe um usuário cadastrado com este email.')
+  if (!resposta?.token || !resposta?.cliente) {
+    throw new Error('A resposta de cadastro não contém os dados esperados.')
   }
 
-  const novoUsuario = {
-    nome: dadosUsuario.nome,
-    email: dadosUsuario.email,
-    telefone: dadosUsuario.telefone,
-    senha: dadosUsuario.senha,
+  return {
+    nome: resposta.cliente.nome,
+    email: resposta.cliente.email,
+    telefone: resposta.cliente.telefone,
     perfil: 'usuario'
   }
-
-  localStorage.setItem(
-    CHAVE_USUARIOS_CADASTRADOS,
-    JSON.stringify([...usuarios, novoUsuario])
-  )
-
-  return novoUsuario
 }
 
 export const atualizarUsuarioMock = (dadosUsuario) => {
