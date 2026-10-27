@@ -5,6 +5,7 @@ import { ModalCadastro } from "./modalCadastro"
 import { Alerta } from "../../shared/componentes/alerta"
 import { useAlerta } from "../../shared/hooks/useAlerta"
 import { FaEye, FaEyeSlash } from "react-icons/fa"
+import { obterErrosDeCampo, obterMensagemDaApi, possuiErrosDeCampo } from "../../shared/api/api-errors"
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -14,6 +15,7 @@ const estiloCampo = {
 export const ModalLogin = ({ onClose }) => {
   const [dadosLogin, setDadosLogin] = useState({ email: '', senha: '' })
   const [erroLogin, setErroLogin] = useState('')
+  const [errosCampo, setErrosCampo] = useState({})
   const [carregando, setCarregando] = useState(false)
   const [cadastroAberto, setCadastroAberto] = useState(false)
   const [senhaVisivel, setSenhaVisivel] = useState(false)
@@ -25,6 +27,7 @@ export const ModalLogin = ({ onClose }) => {
       [campo]: evento.target.value
     }))
     setErroLogin('')
+    setErrosCampo((atuais) => ({ ...atuais, [campo]: '' }))
   }
 
   const validarLogin = async (evento) => {
@@ -47,7 +50,13 @@ export const ModalLogin = ({ onClose }) => {
       setErroLogin('')
     } catch (error) {
       console.error('Erro ao fazer login:', error)
-      setErroLogin(error.response?.data?.message || 'Email ou senha inválidos.')
+      const errosDaApi = obterErrosDeCampo(error)
+      setErrosCampo(errosDaApi)
+      setErroLogin(
+        possuiErrosDeCampo(errosDaApi)
+          ? ''
+          : obterMensagemDaApi(error, 'Email ou senha inválidos.')
+      )
     } finally {
       setCarregando(false)
     }
@@ -79,7 +88,7 @@ export const ModalLogin = ({ onClose }) => {
                     <label htmlFor="email" className="form-label">Email</label>
                     <input
                       type="email"
-                      className="form-control rounded-3 border-1"
+                      className={`form-control rounded-3 border-1 ${errosCampo.email ? 'is-invalid' : ''}`}
                       style={estiloCampo}
                       id="email"
                       value={dadosLogin.email}
@@ -87,13 +96,14 @@ export const ModalLogin = ({ onClose }) => {
                       placeholder="Digite seu email"
                       autoComplete="email"
                     />
+                    {errosCampo.email && <div className="invalid-feedback d-block">{errosCampo.email}</div>}
                 </div>
                 <div className="mb-3">
                     <label htmlFor="senha" className="form-label">Senha</label>
                     <div className="input-group">
                       <input
                         type={senhaVisivel ? "text" : "password"}
-                        className="form-control rounded-start-3 border-1"
+                        className={`form-control rounded-start-3 border-1 ${errosCampo.senha ? 'is-invalid' : ''}`}
                         style={estiloCampo}
                         id="senha"
                         value={dadosLogin.senha}
@@ -110,6 +120,7 @@ export const ModalLogin = ({ onClose }) => {
                         {senhaVisivel ? <FaEyeSlash /> : <FaEye />}
                       </button>
                     </div>
+                    {errosCampo.senha && <div className="invalid-feedback d-block">{errosCampo.senha}</div>}
                 </div>
                 <Botao tamanho="w-100" texto={carregando ? "Entrando..." : "Entrar"} disabled={carregando} />
                 <button

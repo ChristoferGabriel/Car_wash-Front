@@ -3,9 +3,11 @@ import { Botao } from '../../shared/componentes/botao'
 import '../../shared/styles/conteudoPaginaFormulario.css'
 import { FaCheck } from 'react-icons/fa'
 import { Alerta } from '../../shared/componentes/alerta'
-import { criarAgenda, listarServicos } from '../../shared/rotas_api/rotas-api.service'
+import { criarAgenda } from '../../shared/rotas_api/rotas-api.service'
 import { usuarioAtual, usuarioAutenticado } from '../../shared/auth/auth.service'
 import { useAlerta } from '../../shared/hooks/useAlerta'
+import { obterErrosDeCampo, obterMensagemDaApi, possuiErrosDeCampo } from '../../shared/api/api-errors'
+import { useServicos } from '../../shared/servicos/use-servicos'
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -18,7 +20,9 @@ const dadosAgendamentoInicial = {
   rua: '',
   numero: '',
   bairro: '',
-  servico: '',
+  cidade: '',
+  cep: '',
+  servico_id: '',
   anexos: null
 }
 
@@ -28,42 +32,10 @@ const formatarTelefone = (valor) => {
 
 export const ConteudoPaginaFormulario = () => {
   const [estaAutenticado, setEstaAutenticado] = useState(usuarioAutenticado)
-  const [servicosDisponiveis, setServicosDisponiveis] = useState([])
-  const [dadosAgendamento, setDadosAgendamento] = useState(dadosAgendamentoInicial)
+  const { servicos: servicosDisponiveis, erro: erroServicos } = useServicos()
+  const [dadosAgendamento, setDadosAgendamento] = useState({ ...dadosAgendamentoInicial })
   const [erros, setErros] = useState({})
-  const [erroServicos, setErroServicos] = useState('')
   const { alerta, mostrarAlerta, fecharAlerta } = useAlerta()
-
-  useEffect(() => {
-    let componenteMontado = true
-
-    const carregarServicos = async () => {
-      try {
-        const resposta = await listarServicos()
-        const servicos = Array.isArray(resposta) ? resposta : resposta?.items
-
-        if (!Array.isArray(servicos)) {
-          throw new Error('A API retornou um formato inválido para os serviços.')
-        }
-
-        if (componenteMontado) {
-          setErroServicos('')
-          setServicosDisponiveis(servicos)
-        }
-      } catch (error) {
-        console.error('Erro ao carregar serviços:', error)
-        if (componenteMontado) {
-          setErroServicos('Não foi possível carregar os serviços.')
-        }
-      }
-    }
-
-    carregarServicos()
-
-    return () => {
-      componenteMontado = false
-    }
-  }, [])
 
   useEffect(() => {
     const atualizarAutenticacao = () => {
@@ -109,7 +81,9 @@ export const ConteudoPaginaFormulario = () => {
       rua: 'Rua',
       numero: 'Número',
       bairro: 'Bairro',
-      servico: 'Serviço'
+      cidade: 'Cidade',
+      cep: 'CEP',
+      servico_id: 'Serviço'
     }
     const novosErros = Object.fromEntries(
       Object.entries(camposObrigatorios).map(([campo, nomeCampo]) => [
@@ -122,16 +96,22 @@ export const ConteudoPaginaFormulario = () => {
     if (Object.values(novosErros).some(Boolean)) return
 
     try {
+      const usuario = usuarioAtual()
       await criarAgenda({
         ...dadosAgendamento,
-        nome: usuarioAtual.nome,
-        telefone: usuarioAtual.telefone
+        nome: usuario?.nome,
+        telefone: usuario?.telefone
       })
       mostrarAlerta("Agendamento enviado com sucesso! Aguarde a confirmação da empresa, que entrará em contato.")
-      setDadosAgendamento(dadosAgendamentoInicial)
+      setDadosAgendamento({ ...dadosAgendamentoInicial })
+      setErros({})
     } catch (error) {
       console.error('Erro ao enviar dados:', error)
-      mostrarAlerta("Ocorreu um erro ao enviar o agendamento. Por favor, tente novamente.")
+      const errosDaApi = obterErrosDeCampo(error)
+      setErros((atuais) => ({ ...atuais, ...errosDaApi }))
+      if (!possuiErrosDeCampo(errosDaApi)) {
+        mostrarAlerta(obterMensagemDaApi(error, "Ocorreu um erro ao enviar o agendamento. Por favor, tente novamente."))
+      }
     }
   }
 
@@ -190,18 +170,18 @@ export const ConteudoPaginaFormulario = () => {
           </div>
 
           <div className="col-12 col-sm-6 col-lg-4">
-            <label htmlFor="servico" className="form-label">Serviço*</label>
+            <label htmlFor="servico_id" className="form-label">Serviço*</label>
             {erroServicos && (
               <div className="alert alert-danger text-center py-2" role="alert">
                 {erroServicos}
               </div>
             )}
             <select
-              id="servico"
-              className={`form-select form-select-lg rounded-3 border-1 ${erros.servico ? 'is-invalid' : ''}`}
+              id="servico_id"
+              className={`form-select form-select-lg rounded-3 border-1 ${erros.servico_id ? 'is-invalid' : ''}`}
               style={estiloCampo}
-              value={dadosAgendamento.servico}
-              onChange={atualizarCampoObrigatorio('servico', 'Serviço')}
+              value={dadosAgendamento.servico_id}
+              onChange={atualizarCampoObrigatorio('servico_id', 'Serviço')}
               required
             >
               <option value="" disabled>Selecione...</option>
@@ -209,7 +189,7 @@ export const ConteudoPaginaFormulario = () => {
                 <option key={servico.id} value={servico.id}>{servico.nome}</option>
               ))}
             </select>
-            {erros.servico && <div className="invalid-feedback">{erros.servico}</div>}
+            {erros.servico_id && <div className="invalid-feedback">{erros.servico_id}</div>}
           </div>
 
            <div className="col-12 col-sm-6 col-lg-4">
@@ -256,6 +236,28 @@ export const ConteudoPaginaFormulario = () => {
             />
             {erros.bairro && <div className="invalid-feedback">{erros.bairro}</div>}
           </div>
+
+          {[
+            ['cidade', 'Cidade', 'Ex: Curitiba'],
+            ['cep', 'CEP', 'Ex: 80000-000']
+          ].map(([campo, rotulo, placeholder]) => (
+            <div className="col-12 col-sm-6 col-lg-4" key={campo}>
+              <label htmlFor={campo} className="form-label">{rotulo}*</label>
+              <input
+                id={campo}
+                type="text"
+                inputMode={campo === 'cep' ? 'numeric' : undefined}
+                maxLength={campo === 'cep' ? 8 : undefined}
+                className={`form-control form-control-lg rounded-3 border-1 ${erros[campo] ? 'is-invalid' : ''}`}
+                style={estiloCampo}
+                placeholder={placeholder}
+                value={dadosAgendamento[campo]}
+                onChange={atualizarCampoObrigatorio(campo, rotulo)}
+                required
+              />
+              {erros[campo] && <div className="invalid-feedback">{erros[campo]}</div>}
+            </div>
+          ))}
 
           </div>
 

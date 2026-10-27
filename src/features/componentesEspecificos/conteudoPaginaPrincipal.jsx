@@ -14,8 +14,7 @@ import {
 import { Card } from '../../shared/componentes/card'
 import { Botao } from '../../shared/componentes/botao'
 import { useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import { listarServicos } from '../../shared/rotas_api/rotas-api.service'
+import { useServicos } from '../../shared/servicos/use-servicos'
 
 const iconesPorServico = {
     'Lavagem de Muros e Paredes Externas': <GiBrickWall color='#d85a06' />,
@@ -30,43 +29,7 @@ const iconesPorServico = {
 
 export const ConteudoPaginaPrincipal = () => {
     const navigate = useNavigate()
-    const [servicosDisponiveis, setServicosDisponiveis] = useState([])
-    const [erroServicos, setErroServicos] = useState('')
-    const [carregando, setCarregando] = useState(false)
-
-    // CARREGA LISTA DE SERVICOS
-    useEffect(() => {
-        let componenteMontado = true
-
-        const carregarServicos = async () => {
-            setCarregando(true)
-            try {
-                const resposta = await listarServicos()
-                const servicos = Array.isArray(resposta) ? resposta : resposta?.items
-
-                if (!Array.isArray(servicos)) {
-                    throw new Error('A API retornou um formato inválido para os serviços.')
-                }
-
-                if (componenteMontado) {
-                    setServicosDisponiveis(servicos)
-                }
-            } catch (error) {
-                console.error('Erro ao carregar serviços:', error)
-                if (componenteMontado) {
-                    setErroServicos('Não foi possível carregar os serviços.')
-                }
-            } finally {
-                setCarregando(false)
-            }
-        }
-
-        carregarServicos()
-
-        return () => {
-            componenteMontado = false
-        }
-    }, [])
+    const { servicos: servicosDisponiveis, erro: erroServicos, carregando } = useServicos()
 
     const navegarParaAgendamento = () => {
         navigate('/agendar')

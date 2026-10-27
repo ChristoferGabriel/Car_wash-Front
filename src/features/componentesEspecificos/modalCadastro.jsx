@@ -3,6 +3,7 @@ import { Botao } from "../../shared/componentes/botao"
 import { cadastrarUsuario } from "../../shared/auth/auth.service"
 import { useAlerta } from "../../shared/hooks/useAlerta"
 import { Alerta } from "../../shared/componentes/alerta"
+import { obterErrosDeCampo, obterMensagemDaApi, possuiErrosDeCampo } from "../../shared/api/api-errors"
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -20,6 +21,7 @@ export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
   const [aceiteTermos, setAceiteTermos] = useState(false)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
+  const [erros, setErros] = useState({})
 
   const atualizarCampo = (campo) => (evento) => {
     const valor = campo === 'telefone'
@@ -27,6 +29,7 @@ export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
       : evento.target.value
     setDados((dadosAtuais) => ({ ...dadosAtuais, [campo]: valor }))
     setErro('')
+    setErros((atuais) => ({ ...atuais, [campo]: '' }))
   }
 
   const cadastrar = async (evento) => {
@@ -67,7 +70,13 @@ export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
       })
       mostrarAlerta('Cadastro realizado com sucesso!', 'success')
     } catch (error) {
-      setErro(error.response?.data?.message || error.message || 'Não foi possível realizar o cadastro.')
+      const errosDaApi = obterErrosDeCampo(error)
+      setErros(errosDaApi)
+      setErro(
+        possuiErrosDeCampo(errosDaApi)
+          ? ''
+          : obterMensagemDaApi(error, 'Não foi possível realizar o cadastro.')
+      )
     } finally {
       setCarregando(false)
     }
@@ -99,19 +108,20 @@ export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
                       type={tipo}
                       inputMode={campo === 'telefone' ? 'numeric' : undefined}
                       maxLength={campo === 'telefone' ? 11 : undefined}
-                      className="form-control rounded-3 border-1"
+                      className={`form-control rounded-3 border-1 ${erros[campo] ? 'is-invalid' : ''}`}
                       style={estiloCampo}
                       value={dados[campo]}
                       onChange={atualizarCampo(campo)}
                       autoComplete={campo === 'senha' ? 'new-password' : campo}
                     />
+                    {erros[campo] && <div className="invalid-feedback">{erros[campo]}</div>}
                   </div>
                 ))}
                 <div className="form-check mb-3">
                   <input
                     id="aceite-termos"
                     type="checkbox"
-                    className="form-check-input"
+                    className={`form-check-input ${erros.aceite_termos ? 'is-invalid' : ''}`}
                     checked={aceiteTermos}
                     onChange={(evento) => {
                       setAceiteTermos(evento.target.checked)
@@ -121,6 +131,7 @@ export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
                   <label htmlFor="aceite-termos" className="form-check-label">
                     Aceito os termos de uso.
                   </label>
+                  {erros.aceite_termos && <div className="invalid-feedback d-block">{erros.aceite_termos}</div>}
                 </div>
                 <Botao
                   tamanho="w-100"
