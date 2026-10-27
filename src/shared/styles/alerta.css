@@ -1,7 +1,7 @@
 .modal-custom {
   position: fixed;
   inset: 0;
-  z-index: 1050;
+  z-index: 1060;
   display: grid;
   place-items: center;
   padding: 1rem;

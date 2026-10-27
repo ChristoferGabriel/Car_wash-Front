@@ -14,24 +14,26 @@ import {
 import { Card } from '../../shared/componentes/card'
 import { Botao } from '../../shared/componentes/botao'
 import { useNavigate } from 'react-router-dom'
+import { useServicos } from '../../shared/servicos/use-servicos'
+
+const iconesPorServico = {
+    'Lavagem de Muros e Paredes Externas': <GiBrickWall color='#d85a06' />,
+    'Lavagem de Portões e Grades': <GiGate />,
+    'Lavagem de Fachadas e Revestimentos': <FaHome color='#6d2c00' />,
+    'Lavagem de Calçadas e Pisos Externos': <FaUser color='#1c07d4' />,
+    'Lavagem de Pedras e Revestimentos': <GiStoneBlock color='#3d3d3d' />,
+    'Lavagem de Garagens e Áreas de Circulação': <FaCar color='#f70b0b' />,
+    'Lavagem de Áreas de Lazer': <FaLeaf color='#50d81a' />,
+    'Lavagem de Áreas PET e Espaços Externos': <FaCat color='#884609' />
+}
 
 export const ConteudoPaginaPrincipal = () => {
     const navigate = useNavigate()
+    const { servicos: servicosDisponiveis, erro: erroServicos, carregando } = useServicos()
 
     const navegarParaAgendamento = () => {
-        navigate('/agendamentos')
+        navigate('/agendar')
     }
-
-    const servicosDisponiveis = [
-        {icone: <GiBrickWall color='#d85a06'/>, titulo: "Lavagem de Muros e Paredes Externas"},
-        {icone: <GiGate />, titulo: "Lavagem de Portões e Grades"},
-        {icone: <FaHome color='#6d2c00'/>, titulo: "Lavagem de Fachadas e Revestimentos"},
-        {icone: <FaUser color='#1c07d4'/>, titulo: "Lavagem de Calçadas e Pisos Externos"},
-        {icone: <GiStoneBlock color='#3d3d3d'/>, titulo: "Lavagem de Pedras e Revestimentos"},
-        {icone: <FaCar color='#f70b0b'/>, titulo: "Lavagem de Garagens e Áreas de Circulação"},
-        {icone: <FaLeaf color='#50d81a'/>, titulo: "Lavagem de Áreas de Lazer"},
-        {icone: <FaCat color='#884609'/>, titulo: "Lavagem de Áreas PET e Espaços Externos"}
-    ]
 
     return (
         <div className="home-content">
@@ -39,12 +41,22 @@ export const ConteudoPaginaPrincipal = () => {
                 <h2 className='fw-bold fs-4 fs-sm-3 fs-md-2 fs-lg-1'>Serviços</h2>
                 <p className="mb-0 fs-10 fs-sm-3 fs-md-2 fs-lg-1">Realizamos serviços de Limpeza, Revitalização e Conservação, que incluem os seguintes tópicos:</p>
             </div>
+            {erroServicos && (
+                <div className="alert alert-danger text-center" role="alert">
+                    {erroServicos}
+                </div>
+            )}
+            {carregando && (
+                <div className="alert alert-info text-center" role="alert">
+                    Carregando serviços...
+                </div>
+            )}
             <div className="services-grid mb-4">
-                {servicosDisponiveis.map((servico, index) => (
+                {servicosDisponiveis.map((servico) => (
                     <Card 
-                        key={index}
-                        icone={servico.icone}
-                        titulo={servico.titulo}
+                        key={servico.id ?? servico.nome}
+                        icone={iconesPorServico[servico.nome] ?? <FaHome />}
+                        titulo={servico.nome}
                     />
                 ))}
             </div>
