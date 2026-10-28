@@ -147,6 +147,7 @@ export const ModalConta = ({ usuario, onClose }) => {
                       mensagem={alerta.mensagem}
                       onFechar={() => {
                         fecharAlerta()
+                        window.dispatchEvent(new Event('logout-alert-closed'))
                         onClose()
                       }}
                     />

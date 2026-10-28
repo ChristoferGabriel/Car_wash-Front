@@ -129,7 +129,7 @@ export const ConteudoPaginaFormulario = () => {
 
       {!estaAutenticado && (
         <div className="alert alert-warning text-center" role="alert">
-          Para preencher e enviar o agendamento, faça login no site.
+          Para preencher e enviar a agenda, faça login no site.
         </div>
       )}
 

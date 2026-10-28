@@ -1,6 +1,6 @@
 import { Botao } from "../../shared/componentes/botao"
 import { useState } from "react"
-import { autenticarUsuario } from "../../shared/auth/auth.service"
+import { autenticarAdministrador, autenticarUsuario } from "../../shared/auth/auth.service"
 import { ModalCadastro } from "./modalCadastro"
 import { Alerta } from "../../shared/componentes/alerta"
 import { useAlerta } from "../../shared/hooks/useAlerta"
@@ -12,7 +12,7 @@ const estiloCampo = {
   borderColor: 'var(--bs-primary)'
 }
 
-export const ModalLogin = ({ onClose }) => {
+export const ModalLogin = ({ onClose, modoAdmin = false }) => {
   const [dadosLogin, setDadosLogin] = useState({ email: '', senha: '' })
   const [erroLogin, setErroLogin] = useState('')
   const [errosCampo, setErrosCampo] = useState({})
@@ -45,8 +45,9 @@ export const ModalLogin = ({ onClose }) => {
 
     setCarregando(true)
     try {
-      await autenticarUsuario(dadosLogin.email.trim(), dadosLogin.senha.trim())
-      mostrarAlerta('Login realizado com sucesso!')
+      const autenticar = modoAdmin ? autenticarAdministrador : autenticarUsuario
+      await autenticar(dadosLogin.email.trim(), dadosLogin.senha.trim())
+      mostrarAlerta(modoAdmin ? 'Login administrativo realizado com sucesso!' : 'Login realizado com sucesso!')
       setErroLogin('')
     } catch (error) {
       console.error('Erro ao fazer login:', error)
@@ -69,13 +70,14 @@ export const ModalLogin = ({ onClose }) => {
         <div className="modal-dialog modal-dialog-centered" onClick={(evento) => evento.stopPropagation()}>
           <div className="modal-content">
             <div className="modal-header">
-              <h5 className="modal-title">Login</h5>
-              <button
+              <h5 className="modal-title">{modoAdmin ? 'Login administrativo' : 'Login'}</h5>
+              {!modoAdmin && <button
                 type="button"
                 className="btn-close"
                 onClick={onClose}
                 aria-label="Fechar"
               />
+              }
             </div>
             <div className="modal-body">
               <form onSubmit={validarLogin} noValidate>
@@ -118,18 +120,18 @@ export const ModalLogin = ({ onClose }) => {
                         aria-label={senhaVisivel ? "Ocultar senha" : "Mostrar senha"}
                       >
                         {senhaVisivel ? <FaEyeSlash /> : <FaEye />}
-                      </button>
+                              </button>
                     </div>
                     {errosCampo.senha && <div className="invalid-feedback d-block">{errosCampo.senha}</div>}
                 </div>
                 <Botao tamanho="w-100" texto={carregando ? "Entrando..." : "Entrar"} disabled={carregando} />
-                <button
+                {!modoAdmin && <button
                   type="button"
                   className="btn btn-link w-100 mt-2"
                   onClick={() => setCadastroAberto(true)}
                 >
                   Criar cadastro
-                </button>
+                </button>}
               </form>
             </div>
           </div>

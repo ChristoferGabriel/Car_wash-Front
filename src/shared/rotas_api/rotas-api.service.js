@@ -9,7 +9,11 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('car-wash-token')
+  const ehRotaAdministrativa = config.url?.startsWith('/api/admin/')
+  const chaveToken = ehRotaAdministrativa
+    ? 'car-wash-token-admin'
+    : 'car-wash-token-cliente'
+  const token = sessionStorage.getItem(chaveToken)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -21,8 +25,28 @@ export const fazerLogin = async (email, password) => {
   return data
 }
 
+export const fazerLoginAdmin = async (email, password) => {
+  const { data } = await api.post('/api/admin/login', { email, password })
+  return data
+}
+
 export const fazerLogout = async () => {
   const { data } = await api.post('/api/auth/logout')
+  return data
+}
+
+export const fazerLogoutAdmin = async () => {
+  const { data } = await api.post('/api/admin/logout')
+  return data
+}
+
+export const obterClienteAutenticado = async () => {
+  const { data } = await api.get('/api/auth/me')
+  return data
+}
+
+export const obterAdministradorAutenticado = async () => {
+  const { data } = await api.get('/api/admin/me')
   return data
 }
 
