@@ -1,22 +1,32 @@
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { ModalConta } from "../../features/componentesEspecificos/modalConta"
-import { usuarioAtual, usuarioAutenticado } from "../auth/auth.service"
+import { modoAdministradorAtivo, usuarioAtual, usuarioAutenticado } from "../auth/auth.service"
 
 export const Header = ({ logo, navegacao1, tituloNavegacao1, navegacao2, tituloNavegacao2, onLoginClick }) => {
   const [contaAberta, setContaAberta] = useState(false)
   const [usuario, setUsuario] = useState(usuarioAtual)
   const [autenticado, setAutenticado] = useState(usuarioAutenticado)
+  const [modoAdministrador, setModoAdministrador] = useState(modoAdministradorAtivo)
+  const localizacao = useLocation()
+  const estaNaRotaAdministrativa = localizacao.pathname.startsWith('/admin/')
+  const logoSrc = logo?.startsWith('/') ? logo : `/${logo}`
+  const navegacaoAgendamentos = estaNaRotaAdministrativa || modoAdministrador || usuario?.perfil === 'admin'
 
   const titulosDeNavegacao = [
     { titulo: tituloNavegacao1, navegacao: navegacao1 },
     { titulo: tituloNavegacao2, navegacao: navegacao2 },
+    {
+      titulo: navegacaoAgendamentos ? '/admin/agendamentos' : '/meus-agendamentos',
+      navegacao: navegacaoAgendamentos ? 'Agendamentos clientes' : 'Meus agendamentos'
+    }
   ]
 
   useEffect(() => {
     const atualizarConta = () => {
       setUsuario(usuarioAtual())
       setAutenticado(usuarioAutenticado())
+      setModoAdministrador(modoAdministradorAtivo())
     }
 
     window.addEventListener('auth-change', atualizarConta)
@@ -27,7 +37,7 @@ export const Header = ({ logo, navegacao1, tituloNavegacao1, navegacao2, tituloN
     <header className="site-header container-fluid bg-dark px-4 py-3">
       <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3">
           <Link to={tituloNavegacao1} aria-label="Car Wash - Página inicial">
-              <img className="site-logo d-block" src={logo} alt="Car Wash" height="106" />
+              <img className="site-logo d-block" src={logoSrc} alt="Car Wash" height="106" />
           </Link>
           <nav className="site-nav d-flex align-items-center justify-content-center gap-4" aria-label="Navegação principal">
             {titulosDeNavegacao.filter((item) => item.titulo && item.navegacao).map((item, index) => (
@@ -38,7 +48,7 @@ export const Header = ({ logo, navegacao1, tituloNavegacao1, navegacao2, tituloN
             <button
               type="button"
               className="btn btn-link fs-5 fw-semibold text-decoration-none p-0"
-              onClick={() => autenticado ? setContaAberta(true) : onLoginClick()}
+              onClick={() => autenticado ? setContaAberta(true) : onLoginClick?.()}
             >
               {autenticado ? 'Conta' : 'Login'}
             </button>

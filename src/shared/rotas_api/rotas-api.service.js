@@ -21,8 +21,28 @@ export const fazerLogin = async (email, password) => {
   return data
 }
 
+export const fazerLoginAdmin = async (email, password) => {
+  const { data } = await api.post('/api/admin/login', { email, password })
+  return data
+}
+
 export const fazerLogout = async () => {
   const { data } = await api.post('/api/auth/logout')
+  return data
+}
+
+export const fazerLogoutAdmin = async () => {
+  const { data } = await api.post('/api/admin/logout')
+  return data
+}
+
+export const obterClienteAutenticado = async () => {
+  const { data } = await api.get('/api/auth/me')
+  return data
+}
+
+export const obterAdministradorAutenticado = async () => {
+  const { data } = await api.get('/api/admin/me')
   return data
 }
 
