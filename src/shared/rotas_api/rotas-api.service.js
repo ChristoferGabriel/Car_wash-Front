@@ -9,7 +9,11 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('car-wash-token')
+  const ehRotaAdministrativa = config.url?.startsWith('/api/admin/')
+  const chaveToken = ehRotaAdministrativa
+    ? 'car-wash-token-admin'
+    : 'car-wash-token-cliente'
+  const token = sessionStorage.getItem(chaveToken)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }

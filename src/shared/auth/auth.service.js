@@ -8,19 +8,39 @@ import {
   obterAdministradorAutenticado
 } from '../rotas_api/rotas-api.service'
 
-const CHAVE_TOKEN = 'car-wash-token'
+const CHAVE_TOKEN_CLIENTE = 'car-wash-token-cliente'
+const CHAVE_TOKEN_ADMIN = 'car-wash-token-admin'
+const CHAVE_TOKEN_LEGADO = 'car-wash-token'
 const CHAVE_USUARIO = 'car-wash-usuario-atual'
 const CHAVE_USUARIOS_CADASTRADOS = 'car-wash-usuarios-cadastrados'
 const CHAVE_MODO_ADMINISTRADOR = 'car-wash-modo-administrador'
 
 const limparSessao = () => {
-  sessionStorage.removeItem(CHAVE_TOKEN)
+  sessionStorage.removeItem(CHAVE_TOKEN_CLIENTE)
+  sessionStorage.removeItem(CHAVE_TOKEN_ADMIN)
+  sessionStorage.removeItem(CHAVE_TOKEN_LEGADO)
   sessionStorage.removeItem(CHAVE_USUARIO)
   sessionStorage.removeItem(CHAVE_MODO_ADMINISTRADOR)
 }
 
+const migrarTokenLegado = () => {
+  const tokenLegado = sessionStorage.getItem(CHAVE_TOKEN_LEGADO)
+  if (!tokenLegado) {
+    return
+  }
+
+  const ehAdmin = sessionStorage.getItem(CHAVE_MODO_ADMINISTRADOR) === 'true' ||
+    usuarioAtual()?.perfil === 'admin'
+  sessionStorage.setItem(ehAdmin ? CHAVE_TOKEN_ADMIN : CHAVE_TOKEN_CLIENTE, tokenLegado)
+  sessionStorage.removeItem(CHAVE_TOKEN_LEGADO)
+}
+
 export const usuarioAutenticado = () => {
-  return Boolean(sessionStorage.getItem(CHAVE_TOKEN))
+  migrarTokenLegado()
+  return Boolean(
+    sessionStorage.getItem(CHAVE_TOKEN_CLIENTE) ||
+    sessionStorage.getItem(CHAVE_TOKEN_ADMIN)
+  )
 }
 
 export const autenticarUsuario = async (email, senha) => {
@@ -46,7 +66,9 @@ export const autenticarUsuario = async (email, senha) => {
       perfil: resposta.usuario.perfil
     }
 
-    sessionStorage.setItem(CHAVE_TOKEN, resposta.token)
+    sessionStorage.removeItem(CHAVE_TOKEN_CLIENTE)
+    sessionStorage.removeItem(CHAVE_TOKEN_LEGADO)
+    sessionStorage.setItem(CHAVE_TOKEN_ADMIN, resposta.token)
     sessionStorage.setItem(CHAVE_USUARIO, JSON.stringify(administrador))
     sessionStorage.setItem(CHAVE_MODO_ADMINISTRADOR, 'true')
     window.dispatchEvent(new Event('auth-change'))
@@ -64,7 +86,9 @@ export const autenticarUsuario = async (email, senha) => {
     perfil: resposta.cliente?.perfil || ''
   }
 
-  sessionStorage.setItem(CHAVE_TOKEN, resposta.token)
+  sessionStorage.removeItem(CHAVE_TOKEN_ADMIN)
+  sessionStorage.removeItem(CHAVE_TOKEN_LEGADO)
+  sessionStorage.setItem(CHAVE_TOKEN_CLIENTE, resposta.token)
   sessionStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario))
   if (usuario.perfil === 'admin') {
     sessionStorage.setItem(CHAVE_MODO_ADMINISTRADOR, 'true')
@@ -89,7 +113,8 @@ export const autenticarAdministrador = async (email, senha) => {
     perfil: resposta.usuario.perfil
   }
 
-  sessionStorage.setItem(CHAVE_TOKEN, resposta.token)
+  sessionStorage.removeItem(CHAVE_TOKEN_CLIENTE)
+  sessionStorage.setItem(CHAVE_TOKEN_ADMIN, resposta.token)
   sessionStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario))
   sessionStorage.setItem(CHAVE_MODO_ADMINISTRADOR, 'true')
   window.dispatchEvent(new Event('auth-change'))
@@ -102,11 +127,15 @@ export const usuarioAtual = () => {
 }
 
 export const restaurarSessao = async () => {
-  if (!usuarioAutenticado()) {
+  migrarTokenLegado()
+  const possuiTokenAdmin = Boolean(sessionStorage.getItem(CHAVE_TOKEN_ADMIN))
+  const possuiTokenCliente = Boolean(sessionStorage.getItem(CHAVE_TOKEN_CLIENTE))
+
+  if (!possuiTokenAdmin && !possuiTokenCliente) {
     return null
   }
 
-  const admin = modoAdministradorAtivo() || usuarioAtual()?.perfil === 'admin'
+  const admin = possuiTokenAdmin
   const resposta = admin
     ? await obterAdministradorAutenticado()
     : await obterClienteAutenticado()
@@ -182,7 +211,8 @@ export const atualizarUsuarioMock = (dadosUsuario) => {
 }
 
 export const administradorAutenticado = () => {
-  return usuarioAutenticado() && usuarioAtual()?.perfil === 'admin'
+  return Boolean(sessionStorage.getItem(CHAVE_TOKEN_ADMIN)) &&
+    usuarioAtual()?.perfil === 'admin'
 }
 
 export const modoAdministradorAtivo = () => {
@@ -191,12 +221,10 @@ export const modoAdministradorAtivo = () => {
 
 export const encerrarSessao = async () => {
   try {
-    if (usuarioAutenticado()) {
-      if (modoAdministradorAtivo()) {
-        await fazerLogoutAdmin()
-      } else {
-        await fazerLogout()
-      }
+    if (sessionStorage.getItem(CHAVE_TOKEN_ADMIN)) {
+      await fazerLogoutAdmin()
+    } else if (sessionStorage.getItem(CHAVE_TOKEN_CLIENTE)) {
+      await fazerLogout()
     }
   } finally {
     limparSessao()

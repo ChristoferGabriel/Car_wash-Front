@@ -15,7 +15,8 @@ export default function App() {
     restaurarSessao()
       .catch((error) => {
         console.error('Não foi possível restaurar a sessão:', error)
-        sessionStorage.removeItem('car-wash-token')
+        sessionStorage.removeItem('car-wash-token-cliente')
+        sessionStorage.removeItem('car-wash-token-admin')
         sessionStorage.removeItem('car-wash-usuario-atual')
         sessionStorage.removeItem('car-wash-modo-administrador')
         window.dispatchEvent(new Event('auth-change'))
