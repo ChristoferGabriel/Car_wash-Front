@@ -15,24 +15,29 @@ const CHAVE_USUARIO = 'car-wash-usuario-atual'
 const CHAVE_USUARIOS_CADASTRADOS = 'car-wash-usuarios-cadastrados'
 const CHAVE_MODO_ADMINISTRADOR = 'car-wash-modo-administrador'
 
-const limparSessao = () => {
-  sessionStorage.removeItem(CHAVE_TOKEN_CLIENTE)
-  sessionStorage.removeItem(CHAVE_TOKEN_ADMIN)
-  sessionStorage.removeItem(CHAVE_TOKEN_LEGADO)
-  sessionStorage.removeItem(CHAVE_USUARIO)
-  sessionStorage.removeItem(CHAVE_MODO_ADMINISTRADOR)
+const usuarioAtualArmazenado = () => {
+  const usuario = sessionStorage.getItem(CHAVE_USUARIO)
+  return usuario ? JSON.parse(usuario) : null
 }
 
 const migrarTokenLegado = () => {
-  const tokenLegado = sessionStorage.getItem(CHAVE_TOKEN_LEGADO)
-  if (!tokenLegado) {
-    return
-  }
+  const token = sessionStorage.getItem(CHAVE_TOKEN_LEGADO)
+  if (!token) return
 
   const ehAdmin = sessionStorage.getItem(CHAVE_MODO_ADMINISTRADOR) === 'true' ||
-    usuarioAtual()?.perfil === 'admin'
-  sessionStorage.setItem(ehAdmin ? CHAVE_TOKEN_ADMIN : CHAVE_TOKEN_CLIENTE, tokenLegado)
+    usuarioAtualArmazenado()?.perfil === 'admin'
+  sessionStorage.setItem(ehAdmin ? CHAVE_TOKEN_ADMIN : CHAVE_TOKEN_CLIENTE, token)
   sessionStorage.removeItem(CHAVE_TOKEN_LEGADO)
+}
+
+const limparSessao = () => {
+  [
+    CHAVE_TOKEN_CLIENTE,
+    CHAVE_TOKEN_ADMIN,
+    CHAVE_TOKEN_LEGADO,
+    CHAVE_USUARIO,
+    CHAVE_MODO_ADMINISTRADOR
+  ].forEach((chave) => sessionStorage.removeItem(chave))
 }
 
 export const usuarioAutenticado = () => {
@@ -43,9 +48,20 @@ export const usuarioAutenticado = () => {
   )
 }
 
+const salvarSessao = (token, usuario, admin = false) => {
+  sessionStorage.removeItem(admin ? CHAVE_TOKEN_CLIENTE : CHAVE_TOKEN_ADMIN)
+  sessionStorage.setItem(admin ? CHAVE_TOKEN_ADMIN : CHAVE_TOKEN_CLIENTE, token)
+  sessionStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario))
+  if (admin) {
+    sessionStorage.setItem(CHAVE_MODO_ADMINISTRADOR, 'true')
+  } else {
+    sessionStorage.removeItem(CHAVE_MODO_ADMINISTRADOR)
+  }
+  window.dispatchEvent(new Event('auth-change'))
+}
+
 export const autenticarUsuario = async (email, senha) => {
   let resposta
-
   try {
     resposta = await fazerLogin(email, senha)
   } catch (erroCliente) {
@@ -55,24 +71,18 @@ export const autenticarUsuario = async (email, senha) => {
       throw erroCliente
     }
 
-    if (!resposta?.token || !resposta?.usuario || resposta.usuario.perfil !== 'admin') {
+    if (!resposta?.token || resposta.usuario?.perfil !== 'admin') {
       throw erroCliente
     }
 
-    const administrador = {
+    const usuarioAdmin = {
       nome: resposta.usuario.nome || '',
       email: resposta.usuario.email || email,
       telefone: resposta.usuario.telefone || '',
       perfil: resposta.usuario.perfil
     }
-
-    sessionStorage.removeItem(CHAVE_TOKEN_CLIENTE)
-    sessionStorage.removeItem(CHAVE_TOKEN_LEGADO)
-    sessionStorage.setItem(CHAVE_TOKEN_ADMIN, resposta.token)
-    sessionStorage.setItem(CHAVE_USUARIO, JSON.stringify(administrador))
-    sessionStorage.setItem(CHAVE_MODO_ADMINISTRADOR, 'true')
-    window.dispatchEvent(new Event('auth-change'))
-    return administrador
+    salvarSessao(resposta.token, usuarioAdmin, true)
+    return usuarioAdmin
   }
 
   if (!resposta?.token) {
@@ -85,24 +95,13 @@ export const autenticarUsuario = async (email, senha) => {
     telefone: resposta.cliente?.telefone || '',
     perfil: resposta.cliente?.perfil || ''
   }
-
-  sessionStorage.removeItem(CHAVE_TOKEN_ADMIN)
-  sessionStorage.removeItem(CHAVE_TOKEN_LEGADO)
-  sessionStorage.setItem(CHAVE_TOKEN_CLIENTE, resposta.token)
-  sessionStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario))
-  if (usuario.perfil === 'admin') {
-    sessionStorage.setItem(CHAVE_MODO_ADMINISTRADOR, 'true')
-  } else {
-    sessionStorage.removeItem(CHAVE_MODO_ADMINISTRADOR)
-  }
-  window.dispatchEvent(new Event('auth-change'))
+  salvarSessao(resposta.token, usuario)
   return usuario
 }
 
 export const autenticarAdministrador = async (email, senha) => {
   const resposta = await fazerLoginAdmin(email, senha)
-
-  if (!resposta?.token || !resposta?.usuario || resposta.usuario.perfil !== 'admin') {
+  if (!resposta?.token || resposta.usuario?.perfil !== 'admin') {
     throw new Error('A resposta de login administrativo não contém os dados esperados.')
   }
 
@@ -112,76 +111,49 @@ export const autenticarAdministrador = async (email, senha) => {
     telefone: resposta.usuario.telefone || '',
     perfil: resposta.usuario.perfil
   }
-
-  sessionStorage.removeItem(CHAVE_TOKEN_CLIENTE)
-  sessionStorage.setItem(CHAVE_TOKEN_ADMIN, resposta.token)
-  sessionStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario))
-  sessionStorage.setItem(CHAVE_MODO_ADMINISTRADOR, 'true')
-  window.dispatchEvent(new Event('auth-change'))
+  salvarSessao(resposta.token, usuario, true)
   return usuario
 }
 
-export const usuarioAtual = () => {
-  const usuario = sessionStorage.getItem(CHAVE_USUARIO)
-  return usuario ? JSON.parse(usuario) : null
-}
+export const usuarioAtual = () => usuarioAtualArmazenado()
 
 export const restaurarSessao = async () => {
   migrarTokenLegado()
-  const possuiTokenAdmin = Boolean(sessionStorage.getItem(CHAVE_TOKEN_ADMIN))
-  const possuiTokenCliente = Boolean(sessionStorage.getItem(CHAVE_TOKEN_CLIENTE))
+  const admin = Boolean(sessionStorage.getItem(CHAVE_TOKEN_ADMIN))
+  if (!usuarioAutenticado()) return null
 
-  if (!possuiTokenAdmin && !possuiTokenCliente) {
-    return null
-  }
-
-  const admin = possuiTokenAdmin
   const resposta = admin
     ? await obterAdministradorAutenticado()
     : await obterClienteAutenticado()
-  const usuario = admin
-    ? {
-        nome: resposta.nome || '',
-        email: resposta.email || '',
-        telefone: resposta.telefone || '',
-        perfil: resposta.perfil
-      }
-    : {
-        nome: resposta.nome || '',
-        email: resposta.email || '',
-        telefone: resposta.telefone || '',
-        perfil: resposta.perfil || ''
-      }
+  const usuario = {
+    nome: resposta.nome || '',
+    email: resposta.email || '',
+    telefone: resposta.telefone || '',
+    perfil: admin ? resposta.perfil : resposta.perfil || ''
+  }
 
   if (admin && usuario.perfil !== 'admin') {
     throw new Error('A API não confirmou o perfil administrativo.')
   }
-
   sessionStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario))
-  if (admin) {
-    sessionStorage.setItem(CHAVE_MODO_ADMINISTRADOR, 'true')
-  } else {
-    sessionStorage.removeItem(CHAVE_MODO_ADMINISTRADOR)
-  }
   window.dispatchEvent(new Event('auth-change'))
   return usuario
 }
 
 export const cadastrarUsuario = async (dadosUsuario) => {
   const resposta = await cadastrarUsuarioApi(dadosUsuario)
-
   if (!resposta?.token || !resposta?.cliente) {
     throw new Error('A resposta de cadastro não contém os dados esperados.')
   }
 
-  sessionStorage.removeItem(CHAVE_MODO_ADMINISTRADOR)
-
-  return {
+  const usuario = {
     nome: resposta.cliente.nome,
     email: resposta.cliente.email,
     telefone: resposta.cliente.telefone,
     perfil: 'usuario'
   }
+  salvarSessao(resposta.token, usuario)
+  return usuario
 }
 
 export const atualizarUsuarioMock = (dadosUsuario) => {
@@ -193,18 +165,16 @@ export const atualizarUsuarioMock = (dadosUsuario) => {
   }
 
   sessionStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuarioAtualizado))
-
   const usuarios = JSON.parse(
     localStorage.getItem(CHAVE_USUARIOS_CADASTRADOS) || '[]'
   )
-  const usuariosAtualizados = usuarios.map((usuario) =>
-    usuario.email === usuarioAnterior?.email
-      ? { ...usuario, ...dadosUsuario }
-      : usuario
-  )
   localStorage.setItem(
     CHAVE_USUARIOS_CADASTRADOS,
-    JSON.stringify(usuariosAtualizados)
+    JSON.stringify(usuarios.map((usuario) =>
+      usuario.email === usuarioAnterior?.email
+        ? { ...usuario, ...dadosUsuario }
+        : usuario
+    ))
   )
   window.dispatchEvent(new Event('auth-change'))
   return usuarioAtualizado
@@ -215,9 +185,8 @@ export const administradorAutenticado = () => {
     usuarioAtual()?.perfil === 'admin'
 }
 
-export const modoAdministradorAtivo = () => {
-  return sessionStorage.getItem(CHAVE_MODO_ADMINISTRADOR) === 'true'
-}
+export const modoAdministradorAtivo = () =>
+  sessionStorage.getItem(CHAVE_MODO_ADMINISTRADOR) === 'true'
 
 export const encerrarSessao = async () => {
   try {

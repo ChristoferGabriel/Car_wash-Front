@@ -3,8 +3,14 @@ import { Botao } from '../../shared/componentes/botao'
 import '../../shared/styles/conteudoPaginaFormulario.css'
 import { FaCheck } from 'react-icons/fa'
 import { Alerta } from '../../shared/componentes/alerta'
-import { criarAgenda } from '../../shared/rotas_api/rotas-api.service'
-import { usuarioAtual, usuarioAutenticado } from '../../shared/auth/auth.service'
+import {
+  criarAgenda,
+  criarEndereco,
+  listarDiasDisponiveis,
+  listarEnderecos,
+  listarHorariosDisponiveis
+} from '../../shared/rotas_api/rotas-api.service'
+import { usuarioAutenticado } from '../../shared/auth/auth.service'
 import { useAlerta } from '../../shared/hooks/useAlerta'
 import { obterErrosDeCampo, obterMensagemDaApi, possuiErrosDeCampo } from '../../shared/api/api-errors'
 import { useServicos } from '../../shared/servicos/use-servicos'
@@ -22,6 +28,7 @@ const dadosAgendamentoInicial = {
   bairro: '',
   cidade: '',
   cep: '',
+  endereco_id: '',
   servico_id: '',
   anexos: null
 }
@@ -35,6 +42,10 @@ export const ConteudoPaginaFormulario = () => {
   const { servicos: servicosDisponiveis, erro: erroServicos } = useServicos()
   const [dadosAgendamento, setDadosAgendamento] = useState({ ...dadosAgendamentoInicial })
   const [erros, setErros] = useState({})
+  const [enderecos, setEnderecos] = useState([])
+  const [diasDisponiveis, setDiasDisponiveis] = useState([])
+  const [horariosDisponiveis, setHorariosDisponiveis] = useState([])
+  const [carregandoDisponibilidade, setCarregandoDisponibilidade] = useState(false)
   const { alerta, mostrarAlerta, fecharAlerta } = useAlerta()
 
   useEffect(() => {
@@ -45,6 +56,60 @@ export const ConteudoPaginaFormulario = () => {
     window.addEventListener('auth-change', atualizarAutenticacao)
     return () => window.removeEventListener('auth-change', atualizarAutenticacao)
   }, [])
+
+  useEffect(() => {
+    if (!estaAutenticado) return
+    listarEnderecos()
+      .then((resposta) => setEnderecos(resposta.data || resposta || []))
+      .catch((error) => console.error('Erro ao carregar endereços:', error))
+  }, [estaAutenticado])
+
+  useEffect(() => {
+    const primeiroServico = servicosDisponiveis[0]
+    if (!primeiroServico || dadosAgendamento.servico_id) return
+
+    Promise.resolve().then(() => {
+      setDadosAgendamento((atual) => ({
+        ...atual,
+        servico_id: String(primeiroServico.id)
+      }))
+    })
+  }, [servicosDisponiveis, dadosAgendamento.servico_id])
+
+  useEffect(() => {
+    if (!dadosAgendamento.servico_id || !dadosAgendamento.data) {
+      return
+    }
+
+    Promise.resolve()
+      .then(() => {
+        setCarregandoDisponibilidade(true)
+        return listarHorariosDisponiveis(
+          dadosAgendamento.data,
+          dadosAgendamento.servico_id
+        )
+      })
+      .then((resposta) => setHorariosDisponiveis(resposta.data || resposta || []))
+      .catch((error) => {
+        console.error('Erro ao carregar horários:', error)
+        setHorariosDisponiveis([])
+      })
+      .finally(() => setCarregandoDisponibilidade(false))
+  }, [dadosAgendamento.data, dadosAgendamento.servico_id])
+
+  useEffect(() => {
+    if (!dadosAgendamento.servico_id) return
+    const agora = new Date()
+    const mes = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`
+    Promise.resolve()
+      .then(() => {
+        setDiasDisponiveis([])
+        setHorariosDisponiveis([])
+        return listarDiasDisponiveis(mes, dadosAgendamento.servico_id)
+      })
+      .then((resposta) => setDiasDisponiveis(resposta.data || resposta || []))
+      .catch((error) => console.error('Erro ao carregar dias disponíveis:', error))
+  }, [dadosAgendamento.servico_id])
 
  const atualizarCampo = (campo) => (evento) => {
     let valor = campo === 'anexos' ? evento.target.files : evento.target.value
@@ -96,11 +161,25 @@ export const ConteudoPaginaFormulario = () => {
     if (Object.values(novosErros).some(Boolean)) return
 
     try {
-      const usuario = usuarioAtual()
+      let enderecoId = dadosAgendamento.endereco_id
+      if (!enderecoId) {
+        const endereco = await criarEndereco({
+          rua: dadosAgendamento.rua,
+          numero: dadosAgendamento.numero,
+          bairro: dadosAgendamento.bairro,
+          cidade: dadosAgendamento.cidade,
+          cep: dadosAgendamento.cep
+        })
+        enderecoId = endereco.id || endereco.data?.id
+      }
+
+      const horarioSelecionado = horariosDisponiveis.find((horario) =>
+        horario.inicio === dadosAgendamento.horario
+      )
       await criarAgenda({
-        ...dadosAgendamento,
-        nome: usuario?.nome,
-        telefone: usuario?.telefone
+        endereco_id: enderecoId,
+        data_hora: horarioSelecionado?.inicio || `${dadosAgendamento.data}T${dadosAgendamento.horario}:00`,
+        servicos: [{ servico_id: Number(dadosAgendamento.servico_id), quantidade: 1 }]
       })
       mostrarAlerta("Agendamento enviado com sucesso! Aguarde a confirmação da empresa, que entrará em contato.")
       setDadosAgendamento({ ...dadosAgendamentoInicial })
@@ -141,31 +220,76 @@ export const ConteudoPaginaFormulario = () => {
       >
         <fieldset disabled={!estaAutenticado} className="border-0 p-0 m-0">
           <div className="row g-3 g-sm-4 g-lg-5">
+          <div className="col-12">
+            <label htmlFor="endereco_id" className="form-label">Endereço salvo</label>
+            <select
+              id="endereco_id"
+              className="form-select form-select-lg rounded-3 border-1"
+              style={estiloCampo}
+              value={dadosAgendamento.endereco_id}
+              onChange={(evento) => {
+                const endereco = enderecos.find((item) => String(item.id) === evento.target.value)
+                setDadosAgendamento((atual) => ({
+                  ...atual,
+                  endereco_id: evento.target.value,
+                  rua: endereco?.rua || atual.rua,
+                  numero: endereco?.numero || atual.numero,
+                  bairro: endereco?.bairro || atual.bairro,
+                  cidade: endereco?.cidade || atual.cidade,
+                  cep: endereco?.cep || atual.cep
+                }))
+              }}
+            >
+              <option value="">Usar um novo endereço</option>
+              {enderecos.map((endereco) => (
+                <option key={endereco.id} value={endereco.id}>
+                  {endereco.endereco_completo || `${endereco.rua}, ${endereco.numero} - ${endereco.cidade}`}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="horario" className="form-label">Horário*</label>
-            <input
+            <select
               id="horario"
-              type="time"
               className={`form-control form-control-lg rounded-3 border-1 ${erros.horario ? 'is-invalid' : ''}`}
               style={estiloCampo}
               value={dadosAgendamento.horario}
               onChange={atualizarCampoObrigatorio('horario', 'Horário')}
               required
-            />
+            >
+              <option value="" disabled>
+                {carregandoDisponibilidade ? 'Carregando horários...' : 'Selecione...'}
+              </option>
+              {horariosDisponiveis.map((horario) => (
+                <option key={horario.inicio} value={horario.inicio}>
+                  {new Date(horario.inicio).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </option>
+              ))}
+            </select>
             {erros.horario && <div className="invalid-feedback">{erros.horario}</div>}
           </div>
 
           <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="data" className="form-label">Data*</label>
-            <input
+            <select
               id="data"
-              type="date"
               className={`form-control form-control-lg rounded-3 border-1 ${erros.data ? 'is-invalid' : ''}`}
               style={estiloCampo}
               value={dadosAgendamento.data}
               onChange={atualizarCampoObrigatorio('data', 'Data')}
               required
-            />
+            >
+              <option value="" disabled>Selecione um dia com vaga...</option>
+              {diasDisponiveis.map((dia) => (
+                <option key={dia.data} value={dia.data}>
+                  {new Date(`${dia.data}T12:00:00`).toLocaleDateString('pt-BR')} ({dia.livres} vagas)
+                </option>
+              ))}
+            </select>
             {erros.data && <div className="invalid-feedback">{erros.data}</div>}
           </div>
 
@@ -181,7 +305,16 @@ export const ConteudoPaginaFormulario = () => {
               className={`form-select form-select-lg rounded-3 border-1 ${erros.servico_id ? 'is-invalid' : ''}`}
               style={estiloCampo}
               value={dadosAgendamento.servico_id}
-              onChange={atualizarCampoObrigatorio('servico_id', 'Serviço')}
+              onChange={(evento) => {
+                atualizarCampoObrigatorio('servico_id', 'Serviço')(evento)
+                setDadosAgendamento((atual) => ({
+                  ...atual,
+                  data: '',
+                  horario: ''
+                }))
+                setDiasDisponiveis([])
+                setHorariosDisponiveis([])
+              }}
               required
             >
               <option value="" disabled>Selecione...</option>

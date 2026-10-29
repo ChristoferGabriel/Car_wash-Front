@@ -52,12 +52,16 @@ const agendamentosAdminIniciais = [
   }
 ]
 
-export const ListaAgendamentosMock = ({ modo }) => {
+export const ListaAgendamentosMock = ({ modo, agendamentosIniciais, onStatusChange }) => {
   const [agendamentos, setAgendamentos] = useState(
-    modo === 'admin' ? agendamentosAdminIniciais : agendamentosClienteIniciais
+    agendamentosIniciais || (modo === 'admin' ? agendamentosAdminIniciais : agendamentosClienteIniciais)
   )
 
   const atualizarStatus = (id, status) => {
+    if (onStatusChange) {
+      onStatusChange(id, status)
+      return
+    }
     setAgendamentos((atuais) => {
       if (status === 'cancelado' || (modo === 'admin' && status === 'recusado')) {
         return atuais.filter((agendamento) => agendamento.id !== id)

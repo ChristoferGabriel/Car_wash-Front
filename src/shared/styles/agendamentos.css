@@ -79,6 +79,11 @@
   background: #d1e7dd;
 }
 
+.status-concluido {
+  color: #084298;
+  background: #cfe2ff;
+}
+
 .status-recusado,
 .status-cancelado {
   color: #842029;

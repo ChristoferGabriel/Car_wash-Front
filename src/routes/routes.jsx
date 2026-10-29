@@ -3,6 +3,7 @@ import PaginaPrincipal from "../features/pages/paginaPrincipal";
 import PaginaFormulario from "../features/pages/paginaFormulario";
 import PaginaAgendamentos from "../features/pages/paginaAgendamentos";
 import PaginaAgendamentosAdmin from "../features/pages/paginaAgendamentosAdmin";
+import PaginaJanelasAdmin from "../features/pages/paginaJanelasAdmin";
 
 export const rotas = createBrowserRouter([
   {
@@ -20,5 +21,9 @@ export const rotas = createBrowserRouter([
   {
     path: '/admin/agendamentos',
     element: <PaginaAgendamentosAdmin />,
+  },
+  {
+    path: '/admin/janelas',
+    element: <PaginaJanelasAdmin />,
   },
 ]);

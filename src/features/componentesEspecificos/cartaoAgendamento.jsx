@@ -4,6 +4,7 @@ import { Botao } from '../../shared/componentes/botao'
 const status = {
   pendente: { texto: 'Pendente', classe: 'status-pendente' },
   confirmado: { texto: 'Aceito', classe: 'status-confirmado' },
+  concluido: { texto: 'Concluído', classe: 'status-concluido' },
   recusado: { texto: 'Recusado', classe: 'status-recusado' },
   cancelado: { texto: 'Cancelado', classe: 'status-cancelado' }
 }
@@ -31,7 +32,16 @@ export const CartaoAgendamento = ({
             {modo === 'admin' && (
               <>
                 <p><strong>Nome:</strong> {agendamento.nome}</p>
-                <p><strong>Telefone:</strong> {agendamento.telefone}</p>
+                <p>
+                  <strong>Telefone:</strong>{' '}
+                  <a
+                    href={`https://wa.me/55${String(agendamento.telefone || '').replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {agendamento.telefone}
+                  </a>
+                </p>
                 <p><strong>Endereço:</strong> {agendamento.endereco}</p>
               </>
             )}
