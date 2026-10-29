@@ -52,12 +52,21 @@ const agendamentosAdminIniciais = [
   }
 ]
 
-export const ListaAgendamentosMock = ({ modo }) => {
+export const ListaAgendamentosMock = ({
+  modo,
+  agendamentosIniciais,
+  onStatusChange,
+  exibirCabecalho = true
+}) => {
   const [agendamentos, setAgendamentos] = useState(
-    modo === 'admin' ? agendamentosAdminIniciais : agendamentosClienteIniciais
+    agendamentosIniciais || (modo === 'admin' ? agendamentosAdminIniciais : agendamentosClienteIniciais)
   )
 
   const atualizarStatus = (id, status) => {
+    if (onStatusChange) {
+      onStatusChange(id, status)
+      return
+    }
     setAgendamentos((atuais) => {
       if (status === 'cancelado' || (modo === 'admin' && status === 'recusado')) {
         return atuais.filter((agendamento) => agendamento.id !== id)
@@ -70,19 +79,21 @@ export const ListaAgendamentosMock = ({ modo }) => {
   }
 
   const titulo = modo === 'admin'
-    ? 'Agendamentos dos Clientes'
+    ? 'Agendamentos clientes'
     : 'Meus Agendamentos'
 
   return (
-    <section className="appointments-page">
-      <div className="appointments-heading">
-        <h1>{titulo}</h1>
-        <p>
-          {modo === 'admin'
-            ? 'Gerencie os pedidos recebidos dos clientes.'
-            : 'Acompanhe o status dos seus pedidos de agendamento.'}
-        </p>
-      </div>
+    <section className={exibirCabecalho ? 'appointments-page' : ''}>
+      {exibirCabecalho && (
+        <div className="appointments-heading">
+          <h1>{titulo}</h1>
+          <p>
+            {modo === 'admin'
+              ? 'Gerencie os pedidos recebidos dos clientes.'
+              : 'Acompanhe o status dos seus pedidos de agendamento.'}
+          </p>
+        </div>
+      )}
 
       <div className="appointments-list">
         {agendamentos.length === 0 ? (

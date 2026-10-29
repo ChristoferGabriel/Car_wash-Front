@@ -3,7 +3,15 @@ import { useEffect, useState } from "react"
 import { ModalConta } from "../../features/componentesEspecificos/modalConta"
 import { modoAdministradorAtivo, usuarioAtual, usuarioAutenticado } from "../auth/auth.service"
 
-export const Header = ({ logo, navegacao1, tituloNavegacao1, navegacao2, tituloNavegacao2, onLoginClick }) => {
+export const Header = ({
+  logo,
+  navegacao1,
+  tituloNavegacao1,
+  navegacao2,
+  tituloNavegacao2,
+  ocultarNavegacaoAgendamentos = false,
+  onLoginClick
+}) => {
   const [contaAberta, setContaAberta] = useState(false)
   const [usuario, setUsuario] = useState(usuarioAtual)
   const [autenticado, setAutenticado] = useState(usuarioAutenticado)
@@ -16,7 +24,7 @@ export const Header = ({ logo, navegacao1, tituloNavegacao1, navegacao2, tituloN
   const titulosDeNavegacao = [
     { titulo: tituloNavegacao1, navegacao: navegacao1 },
     { titulo: tituloNavegacao2, navegacao: navegacao2 },
-    {
+    !ocultarNavegacaoAgendamentos && {
       titulo: navegacaoAgendamentos ? '/admin/agendamentos' : '/meus-agendamentos',
       navegacao: navegacaoAgendamentos ? 'Agendamentos clientes' : 'Meus agendamentos'
     }
@@ -40,7 +48,7 @@ export const Header = ({ logo, navegacao1, tituloNavegacao1, navegacao2, tituloN
               <img className="site-logo d-block" src={logoSrc} alt="Car Wash" height="106" />
           </Link>
           <nav className="site-nav d-flex align-items-center justify-content-center gap-4" aria-label="Navegação principal">
-            {titulosDeNavegacao.filter((item) => item.titulo && item.navegacao).map((item, index) => (
+            {titulosDeNavegacao.filter((item) => item?.titulo && item?.navegacao).map((item, index) => (
                 <Link key={index} className="fs-5 fw-semibold text-decoration-none" to={item.titulo}>
                     {item.navegacao}
                 </Link>

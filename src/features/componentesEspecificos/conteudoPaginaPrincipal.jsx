@@ -37,9 +37,9 @@ export const ConteudoPaginaPrincipal = () => {
 
     return (
         <div className="home-content">
-            <div className="home-intro d-flex flex-column align-items-center justify-content-center gap-3">
-                <h2 className='fw-bold fs-4 fs-sm-3 fs-md-2 fs-lg-1'>Serviços</h2>
-                <p className="mb-0 fs-10 fs-sm-3 fs-md-2 fs-lg-1">Realizamos serviços de Limpeza, Revitalização e Conservação, que incluem os seguintes tópicos:</p>
+            <div className="home-intro appointments-heading">
+                <h1>Serviços</h1>
+                <p>Realizamos serviços de Limpeza, Revitalização e Conservação, que incluem os seguintes tópicos:</p>
             </div>
             {erroServicos && (
                 <div className="alert alert-danger text-center" role="alert">

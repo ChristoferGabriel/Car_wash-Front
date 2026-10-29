@@ -39,7 +39,7 @@ As dependências estão no [package.json](./package.json).
 | --- | --- |
 | `react` | Construção dos componentes e telas |
 | `react-dom` | Renderização da aplicação no navegador |
-| `react-router-dom` | Navegação entre as páginas `/` e `/agendar` |
+| `react-router-dom` | Navegação entre as páginas públicas e administrativas |
 | `axios` | Chamadas HTTP para a API |
 | `bootstrap` | Grid, formulários, modais e utilitários visuais |
 | `react-icons` | Ícones dos serviços, botões e navegação |
@@ -172,7 +172,7 @@ Se a URL for válida, mantenha esse terminal aberto. O Prism deve escutar em:
 http://127.0.0.1:4010
 ```
 
-O `npx` pode baixar o Prism na primeira execução. Não é necessário adicionar o
+O px` pode baixar o Prism na primeira execução. Não é necessário adicionar o
 Prism ao `package.json` para usar esse comando.
 
 ### Iniciando o Prism com um arquivo baixado
@@ -253,9 +253,55 @@ As chamadas atuais ficam em
 | Método | Endpoint | Uso |
 | --- | --- | --- |
 | `GET` | `/api/servicos` | Lista os serviços na página principal e no formulário |
-| `POST` | `/api/agendamentos` | Envia os dados do formulário de agendamento |
-| `POST` | `/api/login` | Autentica o usuário e retorna o token |
-| `POST` | `/api/logout` | Encerra a sessão autenticada |
+| `POST` | `/api/auth/register` | Cadastra um cliente |
+| `POST` | `/api/auth/login` | Autentica um cliente |
+| `POST` | `/api/auth/logout` | Encerra a sessão do cliente |
+| `GET` | `/api/auth/me` | Restaura a sessão do cliente |
+| `POST` | `/api/admin/login` | Autentica um administrador |
+| `POST` | `/api/admin/logout` | Encerra a sessão administrativa |
+| `GET` | `/api/admin/me` | Restaura a sessão administrativa |
+| `GET` | `/api/enderecos` | Lista os endereços salvos do cliente |
+| `POST` | `/api/enderecos` | Cria um endereço |
+| `GET` | `/api/enderecos/{id}` | Consulta um endereço |
+| `PUT` | `/api/enderecos/{id}` | Atualiza um endereço |
+| `DELETE` | `/api/enderecos/{id}` | Remove um endereço |
+| `GET` | `/api/disponibilidade/dias` | Lista dias com vagas no mês |
+| `GET` | `/api/disponibilidade` | Lista horários livres para uma data |
+| `GET` | `/api/agendamentos` | Lista os agendamentos do cliente |
+| `POST` | `/api/agendamentos` | Cria um agendamento |
+| `GET` | `/api/agendamentos/{id}` | Consulta um agendamento do cliente |
+| `PATCH` | `/api/agendamentos/{id}/cancelar` | Cancela um agendamento |
+| `GET` | `/api/admin/disponibilidades` | Lista as janelas administrativas |
+| `POST` | `/api/admin/disponibilidades` | Cria uma janela |
+| `GET` | `/api/admin/disponibilidades/{id}` | Consulta uma janela |
+| `PUT` | `/api/admin/disponibilidades/{id}` | Atualiza uma janela |
+| `DELETE` | `/api/admin/disponibilidades/{id}` | Remove uma janela |
+| `POST` | `/api/admin/disponibilidades/lote` | Cria janelas em lote |
+| `GET` | `/api/admin/agendamentos` | Lista pedidos dos clientes |
+| `GET` | `/api/admin/agendamentos/{id}` | Consulta um pedido administrativo |
+| `PATCH` | `/api/admin/agendamentos/{id}` | Atualiza o status de um pedido |
+
+Parâmetros usados na disponibilidade:
+
+```text
+GET /api/disponibilidade/dias?mes=YYYY-MM&servico_id=1
+GET /api/disponibilidade?data=YYYY-MM-DD&servico_id=1
+```
+
+O payload atual de criação de agendamento é JSON:
+
+```json
+{
+  "endereco_id": 1,
+  "data_hora": "2026-10-29T08:00:00-03:00",
+  "servicos": [
+    {
+      "servico_id": 1,
+      "quantidade": 1
+    }
+  ]
+}
+```
 
 ### Formato esperado para serviços
 
@@ -271,7 +317,7 @@ O backend deve retornar um array de objetos semelhante a:
 ]
 ```
 
-A página principal utiliza `id` e `nome`. Os ícones não vêm do backend: eles
+A página principal utiliza `id` e ome`. Os ícones não vêm do backend: eles
 ficam definidos no frontend em
 [conteudoPaginaPrincipal.jsx](./src/features/componentesEspecificos/conteudoPaginaPrincipal.jsx),
 por meio de um mapa entre o nome do serviço e o ícone correspondente.
@@ -279,30 +325,41 @@ por meio de um mapa entre o nome do serviço e o ícone correspondente.
 Se surgir um nome de serviço que não esteja nesse mapa, o frontend usa um ícone
 padrão.
 
-### Limitação atual do mock
+### Limitações do mock
 
 O Prism responde conforme os exemplos e schemas do OpenAPI. Ele não representa
 um banco de dados real:
 
-- não persiste serviços ou agendamentos;
+- pode não persistir serviços, disponibilidade ou agendamentos;
 - pode retornar sempre o mesmo exemplo;
-- não cria usuários de verdade;
-- não mantém uma sessão real;
+- pode não criar usuários de verdade;
+- pode não manter uma sessão real;
 - não substitui o backend Laravel.
 
-Além disso, se `POST /api/agendamentos` existir apenas no contrato OpenAPI,
-o Prism poderá simular a resposta, mas o backend real ainda precisará
-implementar essa rota.
+O contrato carregado no Prism precisa conter todas as operações usadas pelo
+frontend. Se uma rota não existir no documento OpenAPI, o Prism responderá com
+`NO_PATH_MATCHED_ERROR` ou `NO_METHOD_MATCHED_ERROR`.
 
 ## Autenticação atual
 
-O login e o logout usam a API documentada:
+Os endpoints de autenticação usados pelo frontend são:
 
+- `POST /api/auth/register`;
 - `POST /api/auth/login`;
-- `POST /api/auth/logout`.
+- `POST /api/auth/logout`;
+- `GET /api/auth/me`;
+- `POST /api/admin/login`;
+- `POST /api/admin/logout`;
+- `GET /api/admin/me`.
 
-O frontend guarda o token Sanctum no `sessionStorage` e o cliente Axios adiciona
-automaticamente:
+O frontend guarda tokens separados no `sessionStorage`:
+
+```text
+car-wash-token-cliente
+car-wash-token-admin
+```
+
+O cliente Axios seleciona o token conforme a rota e adiciona automaticamente:
 
 ```http
 Authorization: Bearer <token>
@@ -313,39 +370,22 @@ O backend documentado cria o administrador por meio das variáveis
 `ADMIN_EMAIL` e `ADMIN_PASSWORD` do próprio projeto Laravel. O frontend não
 valida credenciais localmente: o login depende da resposta da API ou do Prism.
 
-Não há endpoint de cadastro de usuários no contrato atual. Para manter a tela
-testável, o cadastro continua mockado no frontend e é salvo no `localStorage`.
-Esse cadastro não cria o usuário no backend e, portanto, não permite login na
-API. O login continua sendo feito exclusivamente com as credenciais disponíveis
-no backend/Prism.
-
-O modal de conta também possui edição mockada no frontend. As alterações de
-nome, email, telefone e senha são armazenadas na sessão atual e, quando
-aplicável, no `localStorage`. Elas não são enviadas para o backend, pois o
-contrato atual não possui endpoint de edição de usuário.
-
 ### Fluxo de autenticação para testes
 
-1. Inicie o Prism com um contrato que contenha `POST /api/auth/login` e
-   `POST /api/auth/logout`.
+1. Inicie o Prism com um contrato que contenha os endpoints de autenticação e os endpoints necessários para a tela que será testada.
 2. Abra o modal de login no frontend.
-3. Use as credenciais configuradas no backend ou representadas pelos exemplos
-   do contrato OpenAPI.
-4. Após o login, o token fica no `sessionStorage` com a chave
-   `car-wash-token`.
-5. Para testar o cadastro, clique em `Criar cadastro`. O usuário será salvo
-   apenas no `localStorage` e não poderá autenticar na API automaticamente.
-6. Para testar a edição, abra `Conta`, clique em `Editar dados` e salve as
-   alterações. Essa operação também é exclusivamente local.
+3. Use as credenciais configuradas no backend ou representadas pelos exemplos do contrato OpenAPI.
+4. Após o login, o token fica no `sessionStorage` na chave correspondente ao perfil autenticado.
+5. Ao recarregar a aplicação, a sessão é restaurada por `/api/auth/me` ou `/api/admin/me`.
 
 Para limpar os dados de teste no navegador, remova as chaves:
 
 ```text
-car-wash-token
+car-wash-token-cliente
+car-wash-token-admin
 car-wash-usuario-atual
-car-wash-usuarios-cadastrados
+car-wash-modo-administrador
 ```
-
 ## Scripts disponíveis
 
 ### Desenvolvimento
@@ -409,9 +449,47 @@ src/
 Rotas atuais:
 
 ```text
-/         Página principal
-/agendar Formulário de agendamento
+/                  Página principal
+/agendar           Formulário de agendamento
+/meus-agendamentos Histórico do cliente
+/admin/agendamentos Pedidos dos clientes
+/admin/janelas     Janelas de atendimento
 ```
+
+## Status das funcionalidades
+
+### Implementado
+
+- Serviços compartilhados entre a página principal e o formulário.
+- Cadastro e login de cliente com aceite dos termos.
+- Login administrativo e restauração de sessão.
+- Tokens de cliente e administrador armazenados separadamente.
+- Endereços salvos, criação e seleção de endereço no agendamento.
+- Seleção de serviço por `servico_id`.
+- Consulta de dias e horários disponíveis.
+- Histórico e cancelamento de agendamentos do cliente.
+- Criação, edição e exclusão de janelas administrativas.
+- Listagem e atualização de status dos pedidos administrativos.
+- Link de WhatsApp para o telefone do cliente.
+- Tratamento de erros de validação `422` por campo.
+- Formatação de datas de agendamento para `America/Sao_Paulo`.
+
+### Parcial ou pendente
+
+- O formulário de janelas em lote ainda não existe na interface, embora a
+  chamada `POST /api/admin/disponibilidades/lote` esteja disponível no serviço.
+- O painel administrativo ainda não possui contador de pedidos pendentes,
+  detalhe completo do pedido, preview de anexos ou motivo estruturado de recusa.
+- A ação administrativa de concluir ainda não possui botão próprio.
+- O formulário consulta o mês atual de disponibilidade, mas ainda não possui
+  navegação visual entre meses.
+- Horários indisponíveis retornados com `422` ainda precisam disparar uma nova
+  consulta automática dos horários do dia.
+- A regra de cancelamento mínimo de duas horas ainda não é exibida na tela.
+- Os arquivos selecionados no campo de anexos não são enviados atualmente:
+  o contrato mais recente de agendamento utiliza JSON, enquanto o requisito
+  antigo previa `multipart/form-data`. O contrato definitivo do backend precisa
+  ser confirmado antes de ativar esse upload.
 
 ## Problemas comuns
 
@@ -425,7 +503,7 @@ Test-NetConnection 127.0.0.1 -Port 4010
 
 Se falhar, inicie o Prism e deixe o processo aberto.
 
-### Erro `Not Found` ao baixar o OpenAPI
+### Erro ot Found` ao baixar o OpenAPI
 
 Normalmente ocorre quando foi usada uma URL como:
 
