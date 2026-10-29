@@ -52,7 +52,12 @@ const agendamentosAdminIniciais = [
   }
 ]
 
-export const ListaAgendamentosMock = ({ modo, agendamentosIniciais, onStatusChange }) => {
+export const ListaAgendamentosMock = ({
+  modo,
+  agendamentosIniciais,
+  onStatusChange,
+  exibirCabecalho = true
+}) => {
   const [agendamentos, setAgendamentos] = useState(
     agendamentosIniciais || (modo === 'admin' ? agendamentosAdminIniciais : agendamentosClienteIniciais)
   )
@@ -74,19 +79,21 @@ export const ListaAgendamentosMock = ({ modo, agendamentosIniciais, onStatusChan
   }
 
   const titulo = modo === 'admin'
-    ? 'Agendamentos dos Clientes'
+    ? 'Agendamentos clientes'
     : 'Meus Agendamentos'
 
   return (
-    <section className="appointments-page">
-      <div className="appointments-heading">
-        <h1>{titulo}</h1>
-        <p>
-          {modo === 'admin'
-            ? 'Gerencie os pedidos recebidos dos clientes.'
-            : 'Acompanhe o status dos seus pedidos de agendamento.'}
-        </p>
-      </div>
+    <section className={exibirCabecalho ? 'appointments-page' : ''}>
+      {exibirCabecalho && (
+        <div className="appointments-heading">
+          <h1>{titulo}</h1>
+          <p>
+            {modo === 'admin'
+              ? 'Gerencie os pedidos recebidos dos clientes.'
+              : 'Acompanhe o status dos seus pedidos de agendamento.'}
+          </p>
+        </div>
+      )}
 
       <div className="appointments-list">
         {agendamentos.length === 0 ? (

@@ -65,18 +65,6 @@ export const ConteudoPaginaFormulario = () => {
   }, [estaAutenticado])
 
   useEffect(() => {
-    const primeiroServico = servicosDisponiveis[0]
-    if (!primeiroServico || dadosAgendamento.servico_id) return
-
-    Promise.resolve().then(() => {
-      setDadosAgendamento((atual) => ({
-        ...atual,
-        servico_id: String(primeiroServico.id)
-      }))
-    })
-  }, [servicosDisponiveis, dadosAgendamento.servico_id])
-
-  useEffect(() => {
     if (!dadosAgendamento.servico_id || !dadosAgendamento.data) {
       return
     }
@@ -202,9 +190,9 @@ export const ConteudoPaginaFormulario = () => {
           onFechar={fecharAlerta}
         />
       )}
-      <h1 className="fw-bold text-center mb-4 fs-4 fs-sm-3 fs-md-2 fs-lg-1">
-        Agendamento
-      </h1>
+      <div className="appointments-heading">
+        <h1>Agendamento</h1>
+      </div>
 
       {!estaAutenticado && (
         <div className="alert alert-warning text-center" role="alert">
@@ -249,51 +237,6 @@ export const ConteudoPaginaFormulario = () => {
             </select>
           </div>
           <div className="col-12 col-sm-6 col-lg-4">
-            <label htmlFor="horario" className="form-label">Horário*</label>
-            <select
-              id="horario"
-              className={`form-control form-control-lg rounded-3 border-1 ${erros.horario ? 'is-invalid' : ''}`}
-              style={estiloCampo}
-              value={dadosAgendamento.horario}
-              onChange={atualizarCampoObrigatorio('horario', 'Horário')}
-              required
-            >
-              <option value="" disabled>
-                {carregandoDisponibilidade ? 'Carregando horários...' : 'Selecione...'}
-              </option>
-              {horariosDisponiveis.map((horario) => (
-                <option key={horario.inicio} value={horario.inicio}>
-                  {new Date(horario.inicio).toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </option>
-              ))}
-            </select>
-            {erros.horario && <div className="invalid-feedback">{erros.horario}</div>}
-          </div>
-
-          <div className="col-12 col-sm-6 col-lg-4">
-            <label htmlFor="data" className="form-label">Data*</label>
-            <select
-              id="data"
-              className={`form-control form-control-lg rounded-3 border-1 ${erros.data ? 'is-invalid' : ''}`}
-              style={estiloCampo}
-              value={dadosAgendamento.data}
-              onChange={atualizarCampoObrigatorio('data', 'Data')}
-              required
-            >
-              <option value="" disabled>Selecione um dia com vaga...</option>
-              {diasDisponiveis.map((dia) => (
-                <option key={dia.data} value={dia.data}>
-                  {new Date(`${dia.data}T12:00:00`).toLocaleDateString('pt-BR')} ({dia.livres} vagas)
-                </option>
-              ))}
-            </select>
-            {erros.data && <div className="invalid-feedback">{erros.data}</div>}
-          </div>
-
-          <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="servico_id" className="form-label">Serviço*</label>
             {erroServicos && (
               <div className="alert alert-danger text-center py-2" role="alert">
@@ -323,6 +266,53 @@ export const ConteudoPaginaFormulario = () => {
               ))}
             </select>
             {erros.servico_id && <div className="invalid-feedback">{erros.servico_id}</div>}
+          </div>
+
+          <div className="col-12 col-sm-6 col-lg-4">
+            <label htmlFor="data" className="form-label">Data*</label>
+            <select
+              id="data"
+              className={`form-control form-control-lg rounded-3 border-1 ${erros.data ? 'is-invalid' : ''}`}
+              style={estiloCampo}
+              value={dadosAgendamento.data}
+              onChange={atualizarCampoObrigatorio('data', 'Data')}
+              required
+              disabled={!dadosAgendamento.servico_id}
+            >
+              <option value="" disabled>Selecione um dia com vaga...</option>
+              {diasDisponiveis.map((dia) => (
+                <option key={dia.data} value={dia.data}>
+                  {new Date(`${dia.data}T12:00:00`).toLocaleDateString('pt-BR')} ({dia.livres} vagas)
+                </option>
+              ))}
+            </select>
+            {erros.data && <div className="invalid-feedback">{erros.data}</div>}
+          </div>
+
+          <div className="col-12 col-sm-6 col-lg-4">
+            <label htmlFor="horario" className="form-label">Horário*</label>
+            <select
+              id="horario"
+              className={`form-control form-control-lg rounded-3 border-1 ${erros.horario ? 'is-invalid' : ''}`}
+              style={estiloCampo}
+              value={dadosAgendamento.horario}
+              onChange={atualizarCampoObrigatorio('horario', 'Horário')}
+              required
+              disabled={!dadosAgendamento.data}
+            >
+              <option value="" disabled>
+                {carregandoDisponibilidade ? 'Carregando horários...' : 'Selecione um horário...'}
+              </option>
+              {horariosDisponiveis.map((horario) => (
+                <option key={horario.inicio} value={horario.inicio}>
+                  {new Date(horario.inicio).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </option>
+              ))}
+            </select>
+            {erros.horario && <div className="invalid-feedback">{erros.horario}</div>}
           </div>
 
            <div className="col-12 col-sm-6 col-lg-4">

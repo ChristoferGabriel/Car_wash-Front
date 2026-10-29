@@ -9,7 +9,7 @@ import {
   listarJanelasAdmin,
   removerJanelaAdmin
 } from '../../shared/rotas_api/rotas-api.service'
-import { administradorAutenticado, usuarioAutenticado } from '../../shared/auth/auth.service'
+import { administradorPodeVisualizar, usuarioAutenticado } from '../../shared/auth/auth.service'
 
 const janelaInicial = {
   data: '',
@@ -21,8 +21,8 @@ const janelaInicial = {
 
 export default function PaginaJanelasAdmin() {
   const navigate = useNavigate()
-  const [autorizado, setAutorizado] = useState(administradorAutenticado)
-  const [loginAberto, setLoginAberto] = useState(() => !usuarioAutenticado())
+  const [autorizado, setAutorizado] = useState(administradorPodeVisualizar)
+  const [loginAberto, setLoginAberto] = useState(() => !administradorPodeVisualizar())
   const [janelas, setJanelas] = useState([])
   const [janela, setJanela] = useState(janelaInicial)
   const [erro, setErro] = useState('')
@@ -34,9 +34,9 @@ export default function PaginaJanelasAdmin() {
 
   useEffect(() => {
     const atualizar = () => {
-      const admin = administradorAutenticado()
+      const admin = administradorPodeVisualizar()
       setAutorizado(admin)
-      if (usuarioAutenticado() && !admin) navigate('/', { replace: true })
+      if (!import.meta.env.DEV && usuarioAutenticado() && !admin) navigate('/', { replace: true })
     }
     atualizar()
     window.addEventListener('auth-change', atualizar)
@@ -90,8 +90,8 @@ export default function PaginaJanelasAdmin() {
         logo="logo.webp"
         tituloNavegacao1="/"
         navegacao1="Página Principal"
-        tituloNavegacao2="/admin/agendamentos"
-        navegacao2="Pedidos"
+        tituloNavegacao2="/agendar"
+        navegacao2="Agendar"
         onLoginClick={() => setLoginAberto(true)}
       />
       {autorizado && (
@@ -129,7 +129,7 @@ export default function PaginaJanelasAdmin() {
       {loginAberto && (
         <ModalLogin modoAdmin onClose={() => {
           setLoginAberto(false)
-          if (!administradorAutenticado()) navigate('/', { replace: true })
+          if (!administradorPodeVisualizar()) navigate('/', { replace: true })
         }} />
       )}
     </main>

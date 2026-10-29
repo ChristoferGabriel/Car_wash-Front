@@ -9,6 +9,13 @@
   margin-bottom: 2rem;
 }
 
+.admin-appointments-action {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2rem;
+  padding-bottom: 0;
+}
+
 .appointments-heading h1 {
   font-weight: 700;
   margin-bottom: 0.5rem;

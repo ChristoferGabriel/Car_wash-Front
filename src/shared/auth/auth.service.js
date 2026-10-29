@@ -185,6 +185,9 @@ export const administradorAutenticado = () => {
     usuarioAtual()?.perfil === 'admin'
 }
 
+export const administradorPodeVisualizar = () =>
+  import.meta.env.DEV || administradorAutenticado()
+
 export const modoAdministradorAtivo = () =>
   sessionStorage.getItem(CHAVE_MODO_ADMINISTRADOR) === 'true'
 
