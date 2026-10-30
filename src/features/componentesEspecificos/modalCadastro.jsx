@@ -4,6 +4,7 @@ import { cadastrarUsuario } from "../../shared/auth/auth.service"
 import { useAlerta } from "../../shared/hooks/useAlerta"
 import { Alerta } from "../../shared/componentes/alerta"
 import { obterErrosDeCampo, obterMensagemDaApi, possuiErrosDeCampo } from "../../shared/api/api-errors"
+import { termoConsentimento } from "../../shared/auth/termo-consentimento"
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -117,6 +118,17 @@ export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
                     {erros[campo] && <div className="invalid-feedback">{erros[campo]}</div>}
                   </div>
                 ))}
+                <details className="mb-3">
+                  <summary className="text-primary" role="button">
+                    Ler termo de consentimento completo
+                  </summary>
+                  <div
+                    className="border rounded-3 bg-light mt-2 p-3 small"
+                    style={{ maxHeight: '180px', overflowY: 'auto', whiteSpace: 'pre-line' }}
+                  >
+                    {termoConsentimento}
+                  </div>
+                </details>
                 <div className="form-check mb-3">
                   <input
                     id="aceite-termos"
@@ -129,7 +141,7 @@ export const ModalCadastro = ({ onClose, onCadastroSucesso }) => {
                     }}
                   />
                   <label htmlFor="aceite-termos" className="form-check-label">
-                    Aceito os termos de uso.
+                    Li e concordo com o termo de consentimento para tratamento de dados pessoais.
                   </label>
                   {erros.aceite_termos && <div className="invalid-feedback d-block">{erros.aceite_termos}</div>}
                 </div>
