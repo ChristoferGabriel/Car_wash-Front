@@ -5,7 +5,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { administradorPodeVisualizar, usuarioAutenticado } from '../../shared/auth/auth.service'
 import { useEffect, useState } from 'react'
 import { ModalLogin } from '../componentesEspecificos/modalLogin'
-import { listarAgendamentosAdmin, atualizarAgendamentoAdmin } from '../../shared/rotas_api/rotas-api.service'
+import { ModalDetalhesAgendamento } from '../componentesEspecificos/modalDetalhesAgendamento'
+import { useServicos } from '../../shared/servicos/use-servicos'
+import {
+  listarAgendamentosAdmin,
+  confirmarAgendamentoAdmin,
+  recusarAgendamentoAdmin,
+  concluirAgendamentoAdmin
+} from '../../shared/rotas_api/rotas-api.service'
 
 export default function PaginaAgendamentosAdmin() {
   const navigate = useNavigate()
@@ -14,6 +21,8 @@ export default function PaginaAgendamentosAdmin() {
   const [agendamentos, setAgendamentos] = useState([])
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
+  const [agendamentoDetalhado, setAgendamentoDetalhado] = useState(null)
+  const { servicos } = useServicos()
 
   useEffect(() => {
     const atualizarAutorizacao = () => {
@@ -53,10 +62,32 @@ export default function PaginaAgendamentosAdmin() {
       .finally(() => setCarregando(false))
   }, [autorizado])
 
+  const obterNomeServico = (agendamento) => {
+    const servico = agendamento.servico
+      || agendamento.servico_nome
+      || agendamento.servicos?.[0]?.servico
+      || agendamento.servicos?.[0]
+    if (typeof servico === 'string') return servico
+    if (servico?.nome) return servico.nome
+    const servicoId = agendamento.servico_id
+      || servico?.servico_id
+      || servico?.pivot?.servico_id
+      || servico?.id
+      || agendamento.servicos?.[0]?.pivot?.servico_id
+      || agendamento.servicos?.[0]?.servico_id
+      || agendamento.servicos?.[0]?.id
+    return servicos.find((item) => String(item.id) === String(servicoId))?.nome || 'Serviço'
+  }
+
   const atualizarStatus = async (id, status) => {
     try {
+      const acoes = {
+        confirmado: confirmarAgendamentoAdmin,
+        recusado: recusarAgendamentoAdmin,
+        concluido: concluirAgendamentoAdmin
+      }
       const statusApi = status === 'recusado' ? 'cancelado' : status
-      const resposta = await atualizarAgendamentoAdmin(id, { status: statusApi })
+      const resposta = await acoes[status](id)
       const atualizado = resposta.data || resposta
       setAgendamentos((atuais) => statusApi === 'cancelado'
         ? atuais.filter((item) => item.id !== id)
@@ -101,6 +132,7 @@ export default function PaginaAgendamentosAdmin() {
                 modo="admin"
                 agendamentosIniciais={agendamentos}
                 onStatusChange={atualizarStatus}
+                onDetalhes={setAgendamentoDetalhado}
                 exibirCabecalho={false}
               />
             )}
@@ -117,6 +149,13 @@ export default function PaginaAgendamentosAdmin() {
               navigate('/', { replace: true })
             }
           }}
+        />
+      )}
+      {agendamentoDetalhado && (
+        <ModalDetalhesAgendamento
+          agendamento={agendamentoDetalhado}
+          servico={obterNomeServico(agendamentoDetalhado)}
+          onClose={() => setAgendamentoDetalhado(null)}
         />
       )}
     </main>

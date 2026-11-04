@@ -56,7 +56,8 @@ export const ListaAgendamentosMock = ({
   modo,
   agendamentosIniciais,
   onStatusChange,
-  exibirCabecalho = true
+  exibirCabecalho = true,
+  onDetalhes
 }) => {
   const [agendamentos, setAgendamentos] = useState(
     agendamentosIniciais || (modo === 'admin' ? agendamentosAdminIniciais : agendamentosClienteIniciais)
@@ -108,6 +109,8 @@ export const ListaAgendamentosMock = ({
             onCancelar={(id) => atualizarStatus(id, 'cancelado')}
             onAceitar={(id) => atualizarStatus(id, 'confirmado')}
             onRecusar={(id) => atualizarStatus(id, 'recusado')}
+            onConcluir={(id) => atualizarStatus(id, 'concluido')}
+            onDetalhes={onDetalhes}
           />
         ))}
       </div>
