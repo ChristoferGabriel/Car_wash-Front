@@ -6,6 +6,7 @@ import { ModalLogin } from '../componentesEspecificos/modalLogin'
 import {
   atualizarJanelaAdmin,
   criarJanelaAdmin,
+  criarJanelasEmLoteAdmin,
   listarJanelasAdmin,
   removerJanelaAdmin
 } from '../../shared/rotas_api/rotas-api.service'
@@ -19,6 +20,22 @@ const janelaInicial = {
   observacao: ''
 }
 
+const loteInicial = {
+  data_inicio: '',
+  data_fim: '',
+  dias_semana: [],
+  hora_inicio: '',
+  hora_fim: '',
+  intervalo_minutos: 60,
+  capacidade: 1,
+  observacao: ''
+}
+
+const diasDaSemana = [
+  ['1', 'Segunda'], ['2', 'Terça'], ['3', 'Quarta'], ['4', 'Quinta'],
+  ['5', 'Sexta'], ['6', 'Sábado'], ['0', 'Domingo']
+]
+
 export default function PaginaJanelasAdmin() {
   const navigate = useNavigate()
   const [autorizado, setAutorizado] = useState(administradorPodeVisualizar)
@@ -27,6 +44,8 @@ export default function PaginaJanelasAdmin() {
   const [janela, setJanela] = useState(janelaInicial)
   const [erro, setErro] = useState('')
   const [editando, setEditando] = useState(null)
+  const [criarEmLote, setCriarEmLote] = useState(false)
+  const [lote, setLote] = useState(loteInicial)
 
   const carregar = () => listarJanelasAdmin()
     .then((resposta) => setJanelas(resposta.data || resposta || []))
@@ -50,10 +69,29 @@ export default function PaginaJanelasAdmin() {
   const atualizarCampo = (campo) => (evento) =>
     setJanela((atual) => ({ ...atual, [campo]: evento.target.value }))
 
+  const atualizarCampoLote = (campo) => (evento) =>
+    setLote((atual) => ({ ...atual, [campo]: evento.target.value }))
+
+  const alternarDia = (dia) => {
+    setLote((atual) => ({
+      ...atual,
+      dias_semana: atual.dias_semana.includes(dia)
+        ? atual.dias_semana.filter((item) => item !== dia)
+        : [...atual.dias_semana, dia]
+    }))
+  }
+
   const salvar = async (evento) => {
     evento.preventDefault()
     try {
-      if (editando) {
+      if (criarEmLote) {
+        await criarJanelasEmLoteAdmin({
+          ...lote,
+          dias_semana: lote.dias_semana.map(Number),
+          intervalo_minutos: Number(lote.intervalo_minutos),
+          capacidade: Number(lote.capacidade)
+        })
+      } else if (editando) {
         await atualizarJanelaAdmin(editando, {
           hora_inicio: janela.hora_inicio,
           hora_fim: janela.hora_fim,
@@ -63,7 +101,8 @@ export default function PaginaJanelasAdmin() {
       } else {
         await criarJanelaAdmin({ ...janela, capacidade: Number(janela.capacidade) })
       }
-      setJanela(janelaInicial)
+      setJanela({ ...janelaInicial })
+      setLote({ ...loteInicial })
       setEditando(null)
       setErro('')
       await carregar()
@@ -104,13 +143,48 @@ export default function PaginaJanelasAdmin() {
             <Link className="btn btn-outline-primary" to="/admin/agendamentos">Pedidos</Link>
           </div>
           {erro && <div className="alert alert-danger">{erro}</div>}
+          <div className="form-check mb-3">
+            <input
+              id="criar-em-lote"
+              className="form-check-input"
+              type="checkbox"
+              checked={criarEmLote}
+              disabled={Boolean(editando)}
+              onChange={(evento) => setCriarEmLote(evento.target.checked)}
+            />
+            <label className="form-check-label" htmlFor="criar-em-lote">Criar em lote</label>
+          </div>
           <form onSubmit={salvar} className="row g-2 mb-4">
-            <div className="col-md-2"><input className="form-control" type="date" value={janela.data} onChange={atualizarCampo('data')} disabled={Boolean(editando)} required={!editando} /></div>
-            <div className="col-md-2"><input className="form-control" type="time" value={janela.hora_inicio} onChange={atualizarCampo('hora_inicio')} required /></div>
-            <div className="col-md-2"><input className="form-control" type="time" value={janela.hora_fim} onChange={atualizarCampo('hora_fim')} required /></div>
-            <div className="col-md-2"><input className="form-control" type="number" min="1" value={janela.capacidade} onChange={atualizarCampo('capacidade')} /></div>
-            <div className="col-md-3"><input className="form-control" placeholder="Observação" value={janela.observacao} onChange={atualizarCampo('observacao')} /></div>
-            <div className="col-md-1"><button className="btn btn-primary w-100">{editando ? 'Salvar' : 'Criar'}</button></div>
+            {criarEmLote ? (
+              <>
+                <div className="col-md-2"><label className="form-label">Data inicial</label><input className="form-control" type="date" value={lote.data_inicio} onChange={atualizarCampoLote('data_inicio')} required /></div>
+                <div className="col-md-2"><label className="form-label">Data final</label><input className="form-control" type="date" value={lote.data_fim} onChange={atualizarCampoLote('data_fim')} required /></div>
+                <div className="col-12">
+                  <span className="form-label d-block">Dias da semana</span>
+                  {diasDaSemana.map(([valor, nome]) => (
+                    <div className="form-check form-check-inline" key={valor}>
+                      <input id={`dia-${valor}`} className="form-check-input" type="checkbox" checked={lote.dias_semana.includes(valor)} onChange={() => alternarDia(valor)} />
+                      <label className="form-check-label" htmlFor={`dia-${valor}`}>{nome}</label>
+                    </div>
+                  ))}
+                </div>
+                <div className="col-md-2"><label className="form-label">Hora inicial</label><input className="form-control" type="time" value={lote.hora_inicio} onChange={atualizarCampoLote('hora_inicio')} required /></div>
+                <div className="col-md-2"><label className="form-label">Hora final</label><input className="form-control" type="time" value={lote.hora_fim} onChange={atualizarCampoLote('hora_fim')} required /></div>
+                <div className="col-md-2"><label className="form-label">Intervalo (min.)</label><input className="form-control" type="number" min="1" value={lote.intervalo_minutos} onChange={atualizarCampoLote('intervalo_minutos')} required /></div>
+                <div className="col-md-2"><label className="form-label">Capacidade</label><input className="form-control" type="number" min="1" value={lote.capacidade} onChange={atualizarCampoLote('capacidade')} required /></div>
+                <div className="col-md-3"><label className="form-label">Observação</label><input className="form-control" value={lote.observacao} onChange={atualizarCampoLote('observacao')} /></div>
+                <div className="col-md-1 d-flex align-items-end"><button className="btn btn-primary w-100">Criar</button></div>
+              </>
+            ) : (
+              <>
+                <div className="col-md-2"><input className="form-control" type="date" value={janela.data} onChange={atualizarCampo('data')} disabled={Boolean(editando)} required={!editando} /></div>
+                <div className="col-md-2"><input className="form-control" type="time" value={janela.hora_inicio} onChange={atualizarCampo('hora_inicio')} required /></div>
+                <div className="col-md-2"><input className="form-control" type="time" value={janela.hora_fim} onChange={atualizarCampo('hora_fim')} required /></div>
+                <div className="col-md-2"><input className="form-control" type="number" min="1" value={janela.capacidade} onChange={atualizarCampo('capacidade')} /></div>
+                <div className="col-md-3"><input className="form-control" placeholder="Observação" value={janela.observacao} onChange={atualizarCampo('observacao')} /></div>
+                <div className="col-md-1"><button className="btn btn-primary w-100">{editando ? 'Salvar' : 'Criar'}</button></div>
+              </>
+            )}
           </form>
           <div className="list-group">
             {janelas.map((item) => (

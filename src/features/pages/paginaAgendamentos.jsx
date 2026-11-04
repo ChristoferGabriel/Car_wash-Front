@@ -83,7 +83,7 @@ export default function PaginaAgendamentos() {
                     key={agendamento.id}
                     agendamento={{
                       ...agendamento,
-                      servico: agendamento.servico?.nome || agendamento.servico || 'Serviço',
+                      servico: agendamento.servico,
                       data: agendamento.data_hora
                         ? formatarDataHoraLocal(agendamento.data_hora).split(' ')[0]
                         : agendamento.data,
