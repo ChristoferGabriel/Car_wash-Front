@@ -279,7 +279,9 @@ As chamadas atuais ficam em
 | `POST` | `/api/admin/disponibilidades/lote` | Cria janelas em lote |
 | `GET` | `/api/admin/agendamentos` | Lista pedidos dos clientes |
 | `GET` | `/api/admin/agendamentos/{id}` | Consulta um pedido administrativo |
-| `PATCH` | `/api/admin/agendamentos/{id}` | Atualiza o status de um pedido |
+| `PATCH` | `/api/admin/agendamentos/{id}/confirmar` | Confirma um pedido |
+| `PATCH` | `/api/admin/agendamentos/{id}/recusar` | Recusa um pedido |
+| `PATCH` | `/api/admin/agendamentos/{id}/concluir` | Conclui um pedido confirmado |
 
 Parâmetros usados na disponibilidade:
 
@@ -317,7 +319,7 @@ O backend deve retornar um array de objetos semelhante a:
 ]
 ```
 
-A página principal utiliza `id` e ome`. Os ícones não vêm do backend: eles
+A página principal utiliza `id` e `nome`. Os ícones não vêm do backend: eles
 ficam definidos no frontend em
 [conteudoPaginaPrincipal.jsx](./src/features/componentesEspecificos/conteudoPaginaPrincipal.jsx),
 por meio de um mapa entre o nome do serviço e o ícone correspondente.
@@ -465,31 +467,34 @@ Rotas atuais:
 - Login administrativo e restauração de sessão.
 - Tokens de cliente e administrador armazenados separadamente.
 - Endereços salvos, criação e seleção de endereço no agendamento.
+- Edição e exclusão de endereços salvos por modal no formulário de agendamento.
 - Seleção de serviço por `servico_id`.
 - Consulta de dias e horários disponíveis.
 - Histórico e cancelamento de agendamentos do cliente.
 - Criação, edição e exclusão de janelas administrativas.
-- Listagem e atualização de status dos pedidos administrativos.
+- Criação de janelas administrativas em lote por período, dias da semana e intervalo.
+- Listagem e atualização de status dos pedidos administrativos por ações específicas.
+- Card administrativo com serviço, data, horário e nome, além de modal com detalhes do pedido.
 - Link de WhatsApp para o telefone do cliente.
 - Tratamento de erros de validação `422` por campo.
 - Formatação de datas de agendamento para `America/Sao_Paulo`.
 
 ### Parcial ou pendente
 
-- O formulário de janelas em lote ainda não existe na interface, embora a
-  chamada `POST /api/admin/disponibilidades/lote` esteja disponível no serviço.
-- O painel administrativo ainda não possui contador de pedidos pendentes,
-  detalhe completo do pedido, preview de anexos ou motivo estruturado de recusa.
-- A ação administrativa de concluir ainda não possui botão próprio.
+- O painel administrativo ainda não possui contador de pedidos pendentes.
+- A recusa administrativa ainda não coleta um motivo pela interface, embora o
+  backend possa exigir esse campo conforme o contrato da rota.
 - O formulário consulta o mês atual de disponibilidade, mas ainda não possui
   navegação visual entre meses.
 - Horários indisponíveis retornados com `422` ainda precisam disparar uma nova
   consulta automática dos horários do dia.
 - A regra de cancelamento mínimo de duas horas ainda não é exibida na tela.
-- Os arquivos selecionados no campo de anexos não são enviados atualmente:
-  o contrato mais recente de agendamento utiliza JSON, enquanto o requisito
-  antigo previa `multipart/form-data`. O contrato definitivo do backend precisa
-  ser confirmado antes de ativar esse upload.
+- Os arquivos selecionados no campo de anexos ainda não são enviados ao backend.
+  Eles ficam apenas no estado do formulário; o fluxo completo de
+  `multipart/form-data`, armazenamento e associação em `anexo_agendamento`
+  ainda precisa ser implementado.
+- O modal administrativo já possui a área de anexos, mas exibirá
+  “Nenhum anexo” enquanto o upload não estiver implementado no backend.
 
 ## Problemas comuns
 

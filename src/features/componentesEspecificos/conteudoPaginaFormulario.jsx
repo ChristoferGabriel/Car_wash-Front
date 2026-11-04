@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Botao } from '../../shared/componentes/botao'
 import '../../shared/styles/conteudoPaginaFormulario.css'
-import { FaCheck } from 'react-icons/fa'
+import { FaCheck, FaEdit } from 'react-icons/fa'
 import { Alerta } from '../../shared/componentes/alerta'
 import {
   criarAgenda,
@@ -14,6 +14,7 @@ import { usuarioAutenticado } from '../../shared/auth/auth.service'
 import { useAlerta } from '../../shared/hooks/useAlerta'
 import { obterErrosDeCampo, obterMensagemDaApi, possuiErrosDeCampo } from '../../shared/api/api-errors'
 import { useServicos } from '../../shared/servicos/use-servicos'
+import { ModalEndereco } from './modalEndereco'
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -46,6 +47,7 @@ export const ConteudoPaginaFormulario = () => {
   const [diasDisponiveis, setDiasDisponiveis] = useState([])
   const [horariosDisponiveis, setHorariosDisponiveis] = useState([])
   const [carregandoDisponibilidade, setCarregandoDisponibilidade] = useState(false)
+  const [enderecoEditando, setEnderecoEditando] = useState(null)
   const { alerta, mostrarAlerta, fecharAlerta } = useAlerta()
 
   useEffect(() => {
@@ -209,32 +211,51 @@ export const ConteudoPaginaFormulario = () => {
         <fieldset disabled={!estaAutenticado} className="border-0 p-0 m-0">
           <div className="row g-3 g-sm-4 g-lg-5">
           <div className="col-12">
-            <label htmlFor="endereco_id" className="form-label">Endereço salvo</label>
-            <select
-              id="endereco_id"
-              className="form-select form-select-lg rounded-3 border-1"
-              style={estiloCampo}
-              value={dadosAgendamento.endereco_id}
-              onChange={(evento) => {
-                const endereco = enderecos.find((item) => String(item.id) === evento.target.value)
-                setDadosAgendamento((atual) => ({
-                  ...atual,
-                  endereco_id: evento.target.value,
-                  rua: endereco?.rua || atual.rua,
-                  numero: endereco?.numero || atual.numero,
-                  bairro: endereco?.bairro || atual.bairro,
-                  cidade: endereco?.cidade || atual.cidade,
-                  cep: endereco?.cep || atual.cep
-                }))
-              }}
-            >
-              <option value="">Usar um novo endereço</option>
-              {enderecos.map((endereco) => (
-                <option key={endereco.id} value={endereco.id}>
-                  {endereco.endereco_completo || `${endereco.rua}, ${endereco.numero} - ${endereco.cidade}`}
-                </option>
-              ))}
-            </select>
+            <div className="d-flex align-items-end gap-2">
+              <div className="flex-grow-1">
+                <label htmlFor="endereco_id" className="form-label">Endereço salvo</label>
+                <select
+                  id="endereco_id"
+                  className="form-select form-select-lg rounded-3 border-1"
+                  style={estiloCampo}
+                  value={dadosAgendamento.endereco_id}
+                  onChange={(evento) => {
+                    const endereco = enderecos.find((item) => String(item.id) === evento.target.value)
+                    setDadosAgendamento((atual) => ({
+                      ...atual,
+                      endereco_id: evento.target.value,
+                      rua: endereco?.rua || atual.rua,
+                      numero: endereco?.numero || atual.numero,
+                      bairro: endereco?.bairro || atual.bairro,
+                      complemento: endereco?.complemento || atual.complemento,
+                      cidade: endereco?.cidade || atual.cidade,
+                      cep: endereco?.cep || atual.cep
+                    }))
+                  }}
+                >
+                  <option value="">Usar um novo endereço</option>
+                  {enderecos.map((endereco) => (
+                    <option key={endereco.id} value={endereco.id}>
+                      {endereco.endereco_completo || `${endereco.rua}, ${endereco.numero} - ${endereco.cidade}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className="btn btn-warning btn-lg d-flex align-items-center justify-content-center p-0"
+                style={{ width: '48px', height: '48px' }}
+                onClick={() => {
+                  const endereco = enderecos.find((item) => String(item.id) === String(dadosAgendamento.endereco_id))
+                  if (endereco) setEnderecoEditando(endereco)
+                }}
+                disabled={!dadosAgendamento.endereco_id}
+                aria-label="Editar endereço salvo"
+                title="Editar endereço salvo"
+              >
+                <FaEdit />
+              </button>
+            </div>
           </div>
           <div className="col-12 col-sm-6 col-lg-4">
             <label htmlFor="servico_id" className="form-label">Serviço*</label>
@@ -419,6 +440,40 @@ export const ConteudoPaginaFormulario = () => {
           </div>
         </fieldset>
       </form>
+      {enderecoEditando && (
+        <ModalEndereco
+          endereco={enderecoEditando}
+          onClose={() => setEnderecoEditando(null)}
+          onAtualizado={(enderecoAtualizado) => {
+            setEnderecos((atuais) => atuais.map((item) =>
+              item.id === enderecoAtualizado.id ? { ...item, ...enderecoAtualizado } : item
+            ))
+            setDadosAgendamento((atual) => ({
+              ...atual,
+              rua: enderecoAtualizado.rua,
+              numero: enderecoAtualizado.numero,
+              bairro: enderecoAtualizado.bairro,
+              complemento: enderecoAtualizado.complemento || '',
+              cidade: enderecoAtualizado.cidade,
+              cep: enderecoAtualizado.cep
+            }))
+          }}
+          onRemovido={(id) => {
+            setEnderecos((atuais) => atuais.filter((item) => item.id !== id))
+            setDadosAgendamento((atual) => ({
+              ...atual,
+              endereco_id: '',
+              rua: '',
+              numero: '',
+              bairro: '',
+              complemento: '',
+              cidade: '',
+              cep: ''
+            }))
+            mostrarAlerta('Endereço excluído com sucesso.')
+          }}
+        />
+      )}
     </div>
   )
 }
