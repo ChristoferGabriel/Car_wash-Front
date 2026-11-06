@@ -6,6 +6,7 @@ import { administradorPodeVisualizar, usuarioAutenticado } from '../../shared/au
 import { useEffect, useState } from 'react'
 import { ModalLogin } from '../componentesEspecificos/modalLogin'
 import { ModalDetalhesAgendamento } from '../componentesEspecificos/modalDetalhesAgendamento'
+import { ModalRecusaAgendamento } from '../componentesEspecificos/modalRecusaAgendamento'
 import { useServicos } from '../../shared/servicos/use-servicos'
 import {
   listarAgendamentosAdmin,
@@ -22,6 +23,7 @@ export default function PaginaAgendamentosAdmin() {
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
   const [agendamentoDetalhado, setAgendamentoDetalhado] = useState(null)
+  const [agendamentoRecusando, setAgendamentoRecusando] = useState(null)
   const { servicos } = useServicos()
 
   useEffect(() => {
@@ -79,7 +81,7 @@ export default function PaginaAgendamentosAdmin() {
     return servicos.find((item) => String(item.id) === String(servicoId))?.nome || 'Serviço'
   }
 
-  const atualizarStatus = async (id, status) => {
+  const atualizarStatus = async (id, status, dados = undefined) => {
     try {
       const acoes = {
         confirmado: confirmarAgendamentoAdmin,
@@ -87,7 +89,9 @@ export default function PaginaAgendamentosAdmin() {
         concluido: concluirAgendamentoAdmin
       }
       const statusApi = status === 'recusado' ? 'cancelado' : status
-      const resposta = await acoes[status](id)
+      const resposta = status === 'recusado'
+        ? await acoes[status](id, dados)
+        : await acoes[status](id)
       const atualizado = resposta.data || resposta
       setAgendamentos((atuais) => statusApi === 'cancelado'
         ? atuais.filter((item) => item.id !== id)
@@ -97,6 +101,7 @@ export default function PaginaAgendamentosAdmin() {
     } catch (error) {
       console.error('Erro ao atualizar agendamento:', error)
       setErro(error.response?.data?.message || 'Não foi possível atualizar o agendamento.')
+      throw error
     }
   }
 
@@ -131,7 +136,13 @@ export default function PaginaAgendamentosAdmin() {
                 key={agendamentos.map(({ id, status }) => `${id}-${status}`).join('|')}
                 modo="admin"
                 agendamentosIniciais={agendamentos}
-                onStatusChange={atualizarStatus}
+                onStatusChange={(id, status) => {
+                  if (status === 'recusado') {
+                    setAgendamentoRecusando(id)
+                    return
+                  }
+                  return atualizarStatus(id, status)
+                }}
                 onDetalhes={setAgendamentoDetalhado}
                 exibirCabecalho={false}
               />
@@ -156,6 +167,12 @@ export default function PaginaAgendamentosAdmin() {
           agendamento={agendamentoDetalhado}
           servico={obterNomeServico(agendamentoDetalhado)}
           onClose={() => setAgendamentoDetalhado(null)}
+        />
+      )}
+      {agendamentoRecusando && (
+        <ModalRecusaAgendamento
+          onClose={() => setAgendamentoRecusando(null)}
+          onConfirmar={(motivo) => atualizarStatus(agendamentoRecusando, 'recusado', { motivo })}
         />
       )}
     </main>
