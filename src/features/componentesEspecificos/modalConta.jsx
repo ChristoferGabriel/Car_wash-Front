@@ -3,7 +3,6 @@ import { Botao } from "../../shared/componentes/botao"
 import { atualizarUsuarioMock, encerrarSessao } from "../../shared/auth/auth.service"
 import { Alerta } from "../../shared/componentes/alerta"
 import { useAlerta } from "../../shared/hooks/useAlerta"
-import { FaEye, FaEyeSlash } from "react-icons/fa"
 
 const estiloCampo = {
   backgroundColor: 'var(--bs-light)',
@@ -13,12 +12,10 @@ const estiloCampo = {
 export const ModalConta = ({ usuario, onClose }) => {
   const { alerta, mostrarAlerta, fecharAlerta } = useAlerta()
   const [editando, setEditando] = useState(false)
-  const [senhaVisivel, setSenhaVisivel] = useState(false)
   const [dados, setDados] = useState({
     nome: usuario?.nome || '',
     email: usuario?.email || '',
     telefone: usuario?.telefone || '',
-    senha: ''
   })
   const [erro, setErro] = useState('')
 
@@ -45,15 +42,8 @@ export const ModalConta = ({ usuario, onClose }) => {
       setErro('Informe um telefone com exatamente 11 dígitos.')
       return
     }
-    if (dados.senha && dados.senha.length < 6) {
-      setErro('A nova senha deve ter pelo menos 6 caracteres.')
-      return
-    }
 
     const dadosParaSalvar = { ...dados, email: dados.email.trim().toLowerCase() }
-    if (!dadosParaSalvar.senha) {
-      delete dadosParaSalvar.senha
-    }
     atualizarUsuarioMock(dadosParaSalvar)
     setEditando(false)
   }
@@ -85,31 +75,9 @@ export const ModalConta = ({ usuario, onClose }) => {
                     ['nome', 'Nome', 'text'],
                     ['email', 'Email', 'email'],
                     ['telefone', 'Telefone', 'tel'],
-                    ['senha', 'Nova senha', 'password']
                   ].map(([campo, rotulo, tipo]) => (
                     <div className="mb-3" key={campo}>
                       <label htmlFor={`conta-${campo}`} className="form-label">{rotulo}</label>
-                      {campo === 'senha' ? (
-                        <div className="input-group">
-                          <input
-                            id="conta-senha"
-                            type={senhaVisivel ? "text" : tipo}
-                            placeholder="Deixe vazio para manter a senha atual"
-                            className="form-control rounded-start-3 border-1"
-                            style={estiloCampo}
-                            value={dados[campo]}
-                            onChange={atualizarCampo(campo)}
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-outline-primary"
-                            onClick={() => setSenhaVisivel((visivel) => !visivel)}
-                            aria-label={senhaVisivel ? "Ocultar nova senha" : "Mostrar nova senha"}
-                          >
-                            {senhaVisivel ? <FaEyeSlash /> : <FaEye />}
-                          </button>
-                        </div>
-                      ) : (
                         <input
                           id={`conta-${campo}`}
                           type={tipo}
@@ -120,7 +88,6 @@ export const ModalConta = ({ usuario, onClose }) => {
                           value={dados[campo]}
                           onChange={atualizarCampo(campo)}
                         />
-                      )}
                     </div>
                   ))}
                   <div className="d-flex gap-2">
@@ -135,7 +102,7 @@ export const ModalConta = ({ usuario, onClose }) => {
                   <p><strong>Nome:</strong> {usuario?.nome || 'Não informado'}</p>
                   <p><strong>Email:</strong> {usuario?.email}</p>
                   <p><strong>Telefone:</strong> {usuario?.telefone || 'Não informado'}</p>
-                  <p><strong>Perfil:</strong> {usuario?.perfil}</p>
+                  {usuario?.perfil && <p><strong>Perfil:</strong> {usuario?.perfil}</p>}
                   <div className="d-flex gap-2">
                     <Botao tamanho="w-100" texto="Editar dados" onClick={() => setEditando(true)} type="button" />
                     <button type="button" className="btn btn-outline-danger w-100" onClick={sair}>

@@ -98,6 +98,11 @@ export const CartaoAgendamento = ({
             {statusAtual.texto}
           </span>
         </div>
+        {modo === 'cliente' && agendamento.status === 'cancelado' && agendamento.motivo && (
+          <p className="alert alert-danger py-2 mt-3 mb-0">
+            <strong>Motivo do cancelamento:</strong> {agendamento.motivo}
+          </p>
+        )}
 
         {modo === 'admin' ? (
           <div className="appointment-actions">
@@ -139,16 +144,15 @@ export const CartaoAgendamento = ({
               </span>
             </button>
           </div>
-        ) : (
+        ) : !['cancelado', 'recusado', 'concluido'].includes(agendamento.status) ? (
           <button
             type="button"
             className="btn btn-outline-danger btn-sm rounded-3 align-self-start"
             onClick={() => onCancelar(agendamento.id)}
-            disabled={['cancelado', 'recusado'].includes(agendamento.status)}
           >
             Cancelar agendamento
           </button>
-        )}
+        ) : null}
       </div>
     </article>
   )

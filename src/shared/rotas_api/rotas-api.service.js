@@ -163,8 +163,8 @@ export const confirmarAgendamentoAdmin = async (id) => {
   return data
 }
 
-export const recusarAgendamentoAdmin = async (id) => {
-  const { data } = await api.patch(`/api/admin/agendamentos/${id}/recusar`)
+export const recusarAgendamentoAdmin = async (id, dados) => {
+  const { data } = await api.patch(`/api/admin/agendamentos/${id}/recusar`, dados)
   return data
 }
 

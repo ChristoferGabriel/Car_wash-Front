@@ -5,7 +5,7 @@ export const Footer = ({ logo }) => {
     const opcoesContato = [
         {
             icone: <FaWhatsapp size={25} color="#25D366" />,
-            link: ""
+            link: "https://wa.me/5541999078330"
         },
         {
             icone: <FaInstagram size={25} color="#E1306C" />,
