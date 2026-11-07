@@ -36,6 +36,13 @@ const diasDaSemana = [
   ['5', 'Sexta'], ['6', 'Sábado'], ['0', 'Domingo']
 ]
 
+const normalizarHora = (hora) => {
+  if (typeof hora !== 'string') return ''
+
+  const [horas, minutos] = hora.split(':')
+  return horas && minutos ? `${horas.padStart(2, '0')}:${minutos.padStart(2, '0')}` : ''
+}
+
 export default function PaginaJanelasAdmin() {
   const navigate = useNavigate()
   const [autorizado, setAutorizado] = useState(administradorPodeVisualizar)
@@ -87,19 +94,26 @@ export default function PaginaJanelasAdmin() {
       if (criarEmLote) {
         await criarJanelasEmLoteAdmin({
           ...lote,
+          hora_inicio: normalizarHora(lote.hora_inicio),
+          hora_fim: normalizarHora(lote.hora_fim),
           dias_semana: lote.dias_semana.map(Number),
           intervalo_minutos: Number(lote.intervalo_minutos),
           capacidade: Number(lote.capacidade)
         })
       } else if (editando) {
         await atualizarJanelaAdmin(editando, {
-          hora_inicio: janela.hora_inicio,
-          hora_fim: janela.hora_fim,
+          hora_inicio: normalizarHora(janela.hora_inicio),
+          hora_fim: normalizarHora(janela.hora_fim),
           capacidade: Number(janela.capacidade),
           observacao: janela.observacao
         })
       } else {
-        await criarJanelaAdmin({ ...janela, capacidade: Number(janela.capacidade) })
+        await criarJanelaAdmin({
+          ...janela,
+          hora_inicio: normalizarHora(janela.hora_inicio),
+          hora_fim: normalizarHora(janela.hora_fim),
+          capacidade: Number(janela.capacidade)
+        })
       }
       setJanela({ ...janelaInicial })
       setLote({ ...loteInicial })
@@ -189,9 +203,24 @@ export default function PaginaJanelasAdmin() {
           <div className="list-group">
             {janelas.map((item) => (
               <div className="list-group-item d-flex justify-content-between align-items-center" key={item.id}>
-                <span><strong>{item.data}</strong> {item.hora_inicio}–{item.hora_fim} · capacidade {item.capacidade}</span>
+                <span>
+                  <strong>{item.data}</strong> {normalizarHora(item.hora_inicio)}–{normalizarHora(item.hora_fim)}
+                  {' · capacidade '}{item.capacidade}
+                </span>
                 <span className="d-flex gap-2">
-                  <button className="btn btn-sm btn-outline-primary" onClick={() => { setEditando(item.id); setJanela(item) }}>Editar</button>
+                  <button
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={() => {
+                      setEditando(item.id)
+                      setJanela({
+                        ...item,
+                        hora_inicio: normalizarHora(item.hora_inicio),
+                        hora_fim: normalizarHora(item.hora_fim)
+                      })
+                    }}
+                  >
+                    Editar
+                  </button>
                   <button className="btn btn-sm btn-outline-danger" onClick={() => excluir(item.id)}>Apagar</button>
                 </span>
               </div>

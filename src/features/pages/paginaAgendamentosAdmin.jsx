@@ -15,6 +15,18 @@ import {
   concluirAgendamentoAdmin
 } from '../../shared/rotas_api/rotas-api.service'
 
+const normalizarAgendamentos = (resposta) => {
+  const dados = resposta?.data ?? resposta
+  const lista = Array.isArray(dados) ? dados : dados?.data
+
+  if (!Array.isArray(lista)) return []
+
+  return lista.map((agendamento) => ({
+    ...agendamento,
+    id: agendamento.id ?? agendamento.agendamento_id ?? agendamento.agendamento?.id
+  }))
+}
+
 export default function PaginaAgendamentosAdmin() {
   const navigate = useNavigate()
   const [loginAberto, setLoginAberto] = useState(() => !administradorPodeVisualizar())
@@ -56,7 +68,7 @@ export default function PaginaAgendamentosAdmin() {
         setErro('')
         return listarAgendamentosAdmin()
       })
-      .then((resposta) => setAgendamentos(resposta.data || resposta || []))
+      .then((resposta) => setAgendamentos(normalizarAgendamentos(resposta)))
       .catch((error) => {
         console.error('Erro ao carregar pedidos:', error)
         setErro('Não foi possível carregar os agendamentos dos clientes.')
@@ -82,6 +94,11 @@ export default function PaginaAgendamentosAdmin() {
   }
 
   const atualizarStatus = async (id, status, dados = undefined) => {
+    if (id === undefined || id === null || id === '') {
+      setErro('Não foi possível confirmar o pedido: o agendamento não possui identificador.')
+      return
+    }
+
     try {
       const acoes = {
         confirmado: confirmarAgendamentoAdmin,

@@ -257,6 +257,7 @@ As chamadas atuais ficam em
 | `POST` | `/api/auth/login` | Autentica um cliente |
 | `POST` | `/api/auth/logout` | Encerra a sessão do cliente |
 | `GET` | `/api/auth/me` | Restaura a sessão do cliente |
+| `PUT` | `/api/auth/me` | Atualiza nome, e-mail e telefone do cliente |
 | `POST` | `/api/admin/login` | Autentica um administrador |
 | `POST` | `/api/admin/logout` | Encerra a sessão administrativa |
 | `GET` | `/api/admin/me` | Restaura a sessão administrativa |

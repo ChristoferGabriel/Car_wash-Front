@@ -46,6 +46,11 @@ export const obterClienteAutenticado = async () => {
   return data
 }
 
+export const atualizarClienteAutenticado = async (dadosCliente) => {
+  const { data } = await api.put('/api/auth/me', dadosCliente)
+  return data
+}
+
 export const obterAdministradorAutenticado = async () => {
   const { data } = await api.get('/api/admin/me')
   return data
@@ -86,7 +91,31 @@ export const listarServicos = async () => {
 }
 
 export const criarAgenda = async (dadosAgendamento) => {
-  const { data } = await api.post('/api/agendamentos', dadosAgendamento)
+  const anexos = Array.from(dadosAgendamento.anexos || [])
+  const dados = { ...dadosAgendamento }
+  delete dados.anexos
+
+  if (anexos.length === 0) {
+    const { data } = await api.post('/api/agendamentos', dados)
+    return data
+  }
+
+  const formulario = new FormData()
+  formulario.append('endereco_id', String(dados.endereco_id))
+  formulario.append('data_hora', dados.data_hora)
+
+  if (dados.observacoes) {
+    formulario.append('observacoes', dados.observacoes)
+  }
+
+  dados.servicos.forEach((servico, indice) => {
+    formulario.append(`servicos[${indice}][servico_id]`, String(servico.servico_id))
+    formulario.append(`servicos[${indice}][quantidade]`, String(servico.quantidade ?? 1))
+  })
+
+  anexos.forEach((anexo) => formulario.append('anexos[]', anexo))
+
+  const { data } = await api.post('/api/agendamentos', formulario)
   return data
 }
 
@@ -159,7 +188,10 @@ export const obterAgendamentoAdmin = async (id) => {
 }
 
 export const confirmarAgendamentoAdmin = async (id) => {
-  const { data } = await api.patch(`/api/admin/agendamentos/${id}/confirmar`)
+  if (id === undefined || id === null || id === '') {
+    throw new Error('O agendamento não possui um identificador válido para confirmação.')
+  }
+  const { data } = await api.patch(`/api/admin/agendamentos/${encodeURIComponent(id)}/confirmar`)
   return data
 }
 
