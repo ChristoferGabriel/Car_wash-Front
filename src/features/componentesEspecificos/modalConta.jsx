@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Botao } from "../../shared/componentes/botao"
-import { atualizarUsuarioMock, encerrarSessao } from "../../shared/auth/auth.service"
+import { atualizarUsuario, encerrarSessao } from "../../shared/auth/auth.service"
 import { Alerta } from "../../shared/componentes/alerta"
 import { useAlerta } from "../../shared/hooks/useAlerta"
 
@@ -18,6 +18,7 @@ export const ModalConta = ({ usuario, onClose }) => {
     telefone: usuario?.telefone || '',
   })
   const [erro, setErro] = useState('')
+  const [salvando, setSalvando] = useState(false)
 
   const atualizarCampo = (campo) => (evento) => {
     const valor = campo === 'telefone'
@@ -27,7 +28,7 @@ export const ModalConta = ({ usuario, onClose }) => {
     setErro('')
   }
 
-  const salvar = (evento) => {
+  const salvar = async (evento) => {
     evento.preventDefault()
 
     if (!dados.nome.trim() || !dados.email.trim() || !dados.telefone.trim()) {
@@ -43,9 +44,28 @@ export const ModalConta = ({ usuario, onClose }) => {
       return
     }
 
-    const dadosParaSalvar = { ...dados, email: dados.email.trim().toLowerCase() }
-    atualizarUsuarioMock(dadosParaSalvar)
-    setEditando(false)
+    const dadosParaSalvar = {
+      nome: dados.nome.trim(),
+      email: dados.email.trim().toLowerCase(),
+      telefone: dados.telefone
+    }
+
+    try {
+      setSalvando(true)
+      const usuarioAtualizado = await atualizarUsuario(dadosParaSalvar)
+      setDados({
+        nome: usuarioAtualizado.nome,
+        email: usuarioAtualizado.email,
+        telefone: usuarioAtualizado.telefone
+      })
+      setEditando(false)
+      mostrarAlerta('Dados atualizados com sucesso!')
+    } catch (error) {
+      console.error('Erro ao atualizar dados da conta:', error)
+      setErro(error.response?.data?.message || 'Não foi possível atualizar seus dados.')
+    } finally {
+      setSalvando(false)
+    }
   }
 
   const sair = async () => {
@@ -91,7 +111,7 @@ export const ModalConta = ({ usuario, onClose }) => {
                     </div>
                   ))}
                   <div className="d-flex gap-2">
-                    <Botao tamanho="w-100" texto="Salvar alterações" />
+                    <Botao tamanho="w-100" texto={salvando ? 'Salvando...' : 'Salvar alterações'} disabled={salvando} />
                     <button type="button" className="btn btn-outline-secondary w-100" onClick={() => setEditando(false)}>
                       Cancelar
                     </button>

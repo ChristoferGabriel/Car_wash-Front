@@ -169,7 +169,8 @@ export const ConteudoPaginaFormulario = () => {
       await criarAgenda({
         endereco_id: enderecoId,
         data_hora: horarioSelecionado?.inicio || `${dadosAgendamento.data}T${dadosAgendamento.horario}:00`,
-        servicos: [{ servico_id: Number(dadosAgendamento.servico_id), quantidade: 1 }]
+        servicos: [{ servico_id: Number(dadosAgendamento.servico_id), quantidade: 1 }],
+        anexos: dadosAgendamento.anexos
       })
       mostrarAlerta("Agendamento enviado com sucesso! Aguarde a confirmação da empresa, que entrará em contato.")
       setDadosAgendamento({ ...dadosAgendamentoInicial })

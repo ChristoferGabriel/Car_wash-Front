@@ -5,7 +5,8 @@ import {
   fazerLogout,
   fazerLogoutAdmin,
   obterClienteAutenticado,
-  obterAdministradorAutenticado
+  obterAdministradorAutenticado,
+  atualizarClienteAutenticado
 } from '../rotas_api/rotas-api.service'
 
 const CHAVE_TOKEN_CLIENTE = 'car-wash-token-cliente'
@@ -116,6 +117,20 @@ export const autenticarAdministrador = async (email, senha) => {
 }
 
 export const usuarioAtual = () => usuarioAtualArmazenado()
+
+export const atualizarUsuario = async (dadosUsuario) => {
+  const resposta = await atualizarClienteAutenticado(dadosUsuario)
+  const usuario = {
+    nome: resposta.nome || '',
+    email: resposta.email || '',
+    telefone: resposta.telefone || '',
+    perfil: resposta.perfil || usuarioAtual()?.perfil || 'usuario'
+  }
+
+  sessionStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario))
+  window.dispatchEvent(new Event('auth-change'))
+  return usuario
+}
 
 export const restaurarSessao = async () => {
   migrarTokenLegado()

@@ -10,10 +10,23 @@ import { ModalRecusaAgendamento } from '../componentesEspecificos/modalRecusaAge
 import { useServicos } from '../../shared/servicos/use-servicos'
 import {
   listarAgendamentosAdmin,
+  obterAgendamentoAdmin,
   confirmarAgendamentoAdmin,
   recusarAgendamentoAdmin,
   concluirAgendamentoAdmin
 } from '../../shared/rotas_api/rotas-api.service'
+
+const normalizarAgendamentos = (resposta) => {
+  const dados = resposta?.data ?? resposta
+  const lista = Array.isArray(dados) ? dados : dados?.data
+
+  if (!Array.isArray(lista)) return []
+
+  return lista.map((agendamento) => ({
+    ...agendamento,
+    id: agendamento.id ?? agendamento.agendamento_id ?? agendamento.agendamento?.id
+  }))
+}
 
 export default function PaginaAgendamentosAdmin() {
   const navigate = useNavigate()
@@ -23,6 +36,7 @@ export default function PaginaAgendamentosAdmin() {
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
   const [agendamentoDetalhado, setAgendamentoDetalhado] = useState(null)
+  const [carregandoDetalhes, setCarregandoDetalhes] = useState(false)
   const [agendamentoRecusando, setAgendamentoRecusando] = useState(null)
   const { servicos } = useServicos()
 
@@ -56,7 +70,7 @@ export default function PaginaAgendamentosAdmin() {
         setErro('')
         return listarAgendamentosAdmin()
       })
-      .then((resposta) => setAgendamentos(resposta.data || resposta || []))
+      .then((resposta) => setAgendamentos(normalizarAgendamentos(resposta)))
       .catch((error) => {
         console.error('Erro ao carregar pedidos:', error)
         setErro('Não foi possível carregar os agendamentos dos clientes.')
@@ -82,6 +96,11 @@ export default function PaginaAgendamentosAdmin() {
   }
 
   const atualizarStatus = async (id, status, dados = undefined) => {
+    if (id === undefined || id === null || id === '') {
+      setErro('Não foi possível confirmar o pedido: o agendamento não possui identificador.')
+      return
+    }
+
     try {
       const acoes = {
         confirmado: confirmarAgendamentoAdmin,
@@ -102,6 +121,25 @@ export default function PaginaAgendamentosAdmin() {
       console.error('Erro ao atualizar agendamento:', error)
       setErro(error.response?.data?.message || 'Não foi possível atualizar o agendamento.')
       throw error
+    }
+  }
+
+  const abrirDetalhes = async (agendamento) => {
+    if (!agendamento?.id) {
+      setAgendamentoDetalhado(agendamento)
+      return
+    }
+
+    try {
+      setCarregandoDetalhes(true)
+      const resposta = await obterAgendamentoAdmin(agendamento.id)
+      setAgendamentoDetalhado(resposta?.data || resposta)
+    } catch (error) {
+      console.error('Erro ao carregar detalhes do agendamento:', error)
+      setErro('Não foi possível carregar os detalhes e anexos do agendamento.')
+      setAgendamentoDetalhado(agendamento)
+    } finally {
+      setCarregandoDetalhes(false)
     }
   }
 
@@ -143,7 +181,7 @@ export default function PaginaAgendamentosAdmin() {
                   }
                   return atualizarStatus(id, status)
                 }}
-                onDetalhes={setAgendamentoDetalhado}
+                onDetalhes={abrirDetalhes}
                 exibirCabecalho={false}
               />
             )}
@@ -168,6 +206,11 @@ export default function PaginaAgendamentosAdmin() {
           servico={obterNomeServico(agendamentoDetalhado)}
           onClose={() => setAgendamentoDetalhado(null)}
         />
+      )}
+      {carregandoDetalhes && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-25" style={{ zIndex: 1055 }}>
+          <div className="alert alert-info mb-0" role="status">Carregando detalhes...</div>
+        </div>
       )}
       {agendamentoRecusando && (
         <ModalRecusaAgendamento

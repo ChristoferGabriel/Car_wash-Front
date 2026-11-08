@@ -24,7 +24,32 @@ const obterDataHora = (agendamento) => {
 
 const obterAnexos = (agendamento) => {
   const anexos = agendamento.anexos || agendamento.anexos_url || agendamento.arquivos || []
-  return Array.isArray(anexos) ? anexos : [anexos]
+  return (Array.isArray(anexos) ? anexos : [anexos]).filter(Boolean)
+}
+
+const obterUrlAnexo = (anexo) => {
+  if (typeof anexo === 'string') return anexo
+  if (anexo.url || anexo.path) return anexo.url || anexo.path
+  if (anexo.id === undefined || anexo.id === null) return ''
+
+  const baseUrl = String(import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+  return `${baseUrl}/api/anexos/${encodeURIComponent(anexo.id)}`
+}
+
+const dadosDoAnexo = (anexo, indice) => {
+  if (typeof anexo === 'string') {
+    return {
+      nome: anexo.split('/').pop() || `Anexo ${indice + 1}`,
+      url: anexo,
+      mimeType: ''
+    }
+  }
+
+  return {
+    nome: anexo.nome || anexo.nome_original || anexo.name || `Anexo ${indice + 1}`,
+    url: obterUrlAnexo(anexo),
+    mimeType: anexo.mime_type || anexo.mimeType || anexo.type || ''
+  }
 }
 
 export const ModalDetalhesAgendamento = ({ agendamento, servico, onClose }) => {
@@ -64,19 +89,31 @@ export const ModalDetalhesAgendamento = ({ agendamento, servico, onClose }) => {
                 <dt className="col-sm-4">Anexos</dt>
                 <dd className="col-sm-8">
                   {anexos.length === 0 ? 'Nenhum anexo' : (
-                    <ul className="mb-0 ps-3">
+                    <div className="d-flex flex-column gap-3">
                       {anexos.map((anexo, indice) => {
-                        const url = typeof anexo === 'string' ? anexo : anexo.url || anexo.path
-                        const nomeAnexo = typeof anexo === 'string'
-                          ? anexo.split('/').pop()
-                          : anexo.nome || anexo.name || `Anexo ${indice + 1}`
+                        const { nome, url, mimeType } = dadosDoAnexo(anexo, indice)
+                        const imagem = mimeType.startsWith('image/')
                         return (
-                          <li key={`${url || nomeAnexo}-${indice}`}>
-                            {url ? <a href={url} target="_blank" rel="noreferrer">{nomeAnexo}</a> : nomeAnexo}
-                          </li>
+                          <div key={`${url || nome}-${indice}`} className="d-flex align-items-center gap-2">
+                            {imagem && url && (
+                              <img
+                                src={url}
+                                alt={`Prévia de ${nome}`}
+                                className="rounded border"
+                                style={{ width: '72px', height: '72px', objectFit: 'cover' }}
+                              />
+                            )}
+                            {url ? (
+                              <a href={url} target="_blank" rel="noreferrer">
+                                {nome}
+                              </a>
+                            ) : (
+                              <span>{nome}</span>
+                            )}
+                          </div>
                         )
                       })}
-                    </ul>
+                    </div>
                   )}
                 </dd>
               </dl>
