@@ -10,6 +10,7 @@ import { ModalRecusaAgendamento } from '../componentesEspecificos/modalRecusaAge
 import { useServicos } from '../../shared/servicos/use-servicos'
 import {
   listarAgendamentosAdmin,
+  obterAgendamentoAdmin,
   confirmarAgendamentoAdmin,
   recusarAgendamentoAdmin,
   concluirAgendamentoAdmin
@@ -35,6 +36,7 @@ export default function PaginaAgendamentosAdmin() {
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
   const [agendamentoDetalhado, setAgendamentoDetalhado] = useState(null)
+  const [carregandoDetalhes, setCarregandoDetalhes] = useState(false)
   const [agendamentoRecusando, setAgendamentoRecusando] = useState(null)
   const { servicos } = useServicos()
 
@@ -122,6 +124,25 @@ export default function PaginaAgendamentosAdmin() {
     }
   }
 
+  const abrirDetalhes = async (agendamento) => {
+    if (!agendamento?.id) {
+      setAgendamentoDetalhado(agendamento)
+      return
+    }
+
+    try {
+      setCarregandoDetalhes(true)
+      const resposta = await obterAgendamentoAdmin(agendamento.id)
+      setAgendamentoDetalhado(resposta?.data || resposta)
+    } catch (error) {
+      console.error('Erro ao carregar detalhes do agendamento:', error)
+      setErro('Não foi possível carregar os detalhes e anexos do agendamento.')
+      setAgendamentoDetalhado(agendamento)
+    } finally {
+      setCarregandoDetalhes(false)
+    }
+  }
+
   return (
     <main className="min-vh-100 d-flex flex-column">
       <Header
@@ -160,7 +181,7 @@ export default function PaginaAgendamentosAdmin() {
                   }
                   return atualizarStatus(id, status)
                 }}
-                onDetalhes={setAgendamentoDetalhado}
+                onDetalhes={abrirDetalhes}
                 exibirCabecalho={false}
               />
             )}
@@ -185,6 +206,11 @@ export default function PaginaAgendamentosAdmin() {
           servico={obterNomeServico(agendamentoDetalhado)}
           onClose={() => setAgendamentoDetalhado(null)}
         />
+      )}
+      {carregandoDetalhes && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-25" style={{ zIndex: 1055 }}>
+          <div className="alert alert-info mb-0" role="status">Carregando detalhes...</div>
+        </div>
       )}
       {agendamentoRecusando && (
         <ModalRecusaAgendamento
