@@ -9,7 +9,8 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const ehRotaAdministrativa = config.url?.startsWith('/api/admin/')
+  const ehRotaAdministrativa = config.url?.startsWith('/api/admin/') ||
+    config.url?.startsWith('/api/anexos/')
   const chaveToken = ehRotaAdministrativa
     ? 'car-wash-token-admin'
     : 'car-wash-token-cliente'
@@ -205,7 +206,9 @@ export const concluirAgendamentoAdmin = async (id) => {
   return data
 }
 
-export const baixarAnexo = async (url) => {
-  const { data } = await axios.get(url, { responseType: 'blob' })
+export const baixarAnexo = async (id) => {
+  const { data } = await api.get(`/api/anexos/${encodeURIComponent(id)}`, {
+    responseType: 'blob'
+  })
   return data
 }

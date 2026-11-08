@@ -1,4 +1,6 @@
+import { useEffect, useMemo, useState } from 'react'
 import { formatarDataHoraLocal } from '../../shared/datas/date-time'
+import { baixarAnexo } from '../../shared/rotas_api/rotas-api.service'
 
 const formatarEndereco = (endereco) => {
   if (!endereco || typeof endereco === 'string') return endereco || 'Não informado'
@@ -27,38 +29,78 @@ const obterAnexos = (agendamento) => {
   return (Array.isArray(anexos) ? anexos : [anexos]).filter(Boolean)
 }
 
-const obterUrlAnexo = (anexo) => {
-  if (typeof anexo === 'string') return anexo
-  if (anexo.url || anexo.path) return anexo.url || anexo.path
-  if (anexo.id === undefined || anexo.id === null) return ''
-
-  const baseUrl = String(import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
-  return `${baseUrl}/api/anexos/${encodeURIComponent(anexo.id)}`
-}
-
 const dadosDoAnexo = (anexo, indice) => {
   if (typeof anexo === 'string') {
     return {
       nome: anexo.split('/').pop() || `Anexo ${indice + 1}`,
       url: anexo,
+      id: null,
       mimeType: ''
     }
   }
 
   return {
     nome: anexo.nome || anexo.nome_original || anexo.name || `Anexo ${indice + 1}`,
-    url: obterUrlAnexo(anexo),
+    url: anexo.url || anexo.path || '',
+    id: anexo.id ?? null,
     mimeType: anexo.mime_type || anexo.mimeType || anexo.type || ''
   }
 }
 
 export const ModalDetalhesAgendamento = ({ agendamento, servico, onClose }) => {
+  const [urlsAnexos, setUrlsAnexos] = useState({})
+  const [errosAnexos, setErrosAnexos] = useState({})
+  const [carregandoAnexos, setCarregandoAnexos] = useState({})
   const cliente = obterCliente(agendamento)
   const { data, horario } = obterDataHora(agendamento)
   const nome = agendamento.nome || agendamento.cliente_nome || cliente.nome
   const telefone = agendamento.telefone || agendamento.cliente_telefone || cliente.telefone
   const email = agendamento.email || agendamento.cliente_email || cliente.email
-  const anexos = obterAnexos(agendamento)
+  const anexos = useMemo(() => obterAnexos(agendamento), [agendamento])
+
+  useEffect(() => {
+    let ativo = true
+    const urlsCriadas = []
+
+    const carregarAnexos = async () => {
+      setCarregandoAnexos(Object.fromEntries(anexos.map((anexo, indice) => {
+        const dados = dadosDoAnexo(anexo, indice)
+        return [`${dados.url || dados.id || dados.nome}-${indice}`, true]
+      })))
+
+      const resultados = await Promise.all(anexos.map(async (anexo, indice) => {
+        const dados = dadosDoAnexo(anexo, indice)
+        if (dados.url || dados.id === null) {
+          return { chave: `${dados.url || dados.nome}-${indice}`, url: dados.url }
+        }
+
+        try {
+          const arquivo = await baixarAnexo(dados.id)
+          const url = URL.createObjectURL(arquivo)
+          urlsCriadas.push(url)
+          return { chave: `${dados.id}-${indice}`, url }
+        } catch (error) {
+          console.error('Erro ao carregar anexo:', error)
+          return { chave: `${dados.id}-${indice}`, url: '', erro: true }
+        }
+      }))
+
+      if (!ativo) return
+
+      setUrlsAnexos(Object.fromEntries(resultados.map(({ chave, url }) => [chave, url])))
+      setErrosAnexos(Object.fromEntries(resultados
+        .filter(({ erro }) => erro)
+        .map(({ chave }) => [chave, true])))
+      setCarregandoAnexos({})
+    }
+
+    carregarAnexos()
+
+    return () => {
+      ativo = false
+      urlsCriadas.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [anexos])
 
   return (
     <>
@@ -91,8 +133,13 @@ export const ModalDetalhesAgendamento = ({ agendamento, servico, onClose }) => {
                   {anexos.length === 0 ? 'Nenhum anexo' : (
                     <div className="d-flex flex-column gap-3">
                       {anexos.map((anexo, indice) => {
-                        const { nome, url, mimeType } = dadosDoAnexo(anexo, indice)
+                        const dados = dadosDoAnexo(anexo, indice)
+                        const chave = `${dados.url || dados.id || dados.nome}-${indice}`
+                        const url = urlsAnexos[chave] || dados.url
+                        const { nome, mimeType } = dados
                         const imagem = mimeType.startsWith('image/')
+                        const carregando = carregandoAnexos[chave]
+                        const erro = errosAnexos[chave]
                         return (
                           <div key={`${url || nome}-${indice}`} className="d-flex align-items-center gap-2">
                             {imagem && url && (
@@ -103,12 +150,16 @@ export const ModalDetalhesAgendamento = ({ agendamento, servico, onClose }) => {
                                 style={{ width: '72px', height: '72px', objectFit: 'cover' }}
                               />
                             )}
-                            {url ? (
+                            {carregando ? (
+                              <span>{nome} (carregando...)</span>
+                            ) : url && !erro ? (
                               <a href={url} target="_blank" rel="noreferrer">
                                 {nome}
                               </a>
                             ) : (
-                              <span>{nome}</span>
+                              <span className="text-danger">
+                                {nome} (não foi possível carregar o arquivo)
+                              </span>
                             )}
                           </div>
                         )
