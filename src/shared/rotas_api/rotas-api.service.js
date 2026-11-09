@@ -205,7 +205,7 @@ export const concluirAgendamentoAdmin = async (id) => {
   return data
 }
 
-export const baixarAnexo = async (url) => {
-  const { data } = await axios.get(url, { responseType: 'blob' })
+export const baixarAnexoAdmin = async (id) => {
+  const { data } = await api.get(`/api/admin/anexos/${id}`, { responseType: 'blob' })
   return data
 }
