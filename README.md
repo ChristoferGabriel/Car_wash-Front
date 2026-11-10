@@ -4,13 +4,27 @@ Frontend da aplicação Car Wash, desenvolvido com React e Vite.
 
 Este documento explica:
 
+- o objetivo e os fluxos disponíveis no frontend;
 - quais tecnologias e bibliotecas o projeto utiliza;
 - como instalar e executar o frontend;
-- como executar um mock da API a partir de um arquivo OpenAPI (`openapi.yaml`);
+- como conectar o frontend ao backend ou executar um mock da API a partir de um arquivo OpenAPI (`openapi.yaml`);
 - como configurar a URL da API;
 - quais endpoints o frontend consome;
-- quais partes ainda são mockadas no próprio frontend;
+- quais partes ainda estão pendentes;
 - como validar se a integração está funcionando.
+
+## Visão geral
+
+O projeto oferece o fluxo de agendamento de serviços de lavagem, com áreas
+distintas para clientes e administradores:
+
+- clientes podem consultar serviços, cadastrar-se, autenticar-se, manter
+  endereços, consultar disponibilidade, criar agendamentos e acompanhar ou
+  cancelar seus pedidos;
+- administradores podem autenticar-se, gerenciar janelas de atendimento e
+  confirmar, recusar ou concluir agendamentos;
+- o formulário de agendamento aceita anexos e envia os dados como
+  `multipart/form-data` quando há arquivos selecionados.
 
 ## Pré-requisitos
 
@@ -72,21 +86,28 @@ Esse comando instala as dependências definidas no `package.json`.
 ## Variáveis de ambiente
 
 O frontend usa a variável `VITE_API_URL` para definir o endereço base da API.
+Escolha a configuração de acordo com o servidor que será utilizado:
+
+| Cenário | `VITE_API_URL` |
+| --- | --- |
+| Backend Laravel local | `http://127.0.0.1:8000` |
+| Mock Prism local | `http://127.0.0.1:4010` |
 
 O arquivo [.env.example](./.env.example) contém a configuração esperada:
 
 ```env
-VITE_API_URL=http://127.0.0.1:4010
+VITE_API_URL=http://127.0.0.1:8000
 ```
 
 Crie ou confirme o arquivo `.env` na raiz:
 
 ```env
-VITE_API_URL=http://127.0.0.1:4010
+VITE_API_URL=http://127.0.0.1:8000
 ```
 
 O arquivo `.env` é local e está no `.gitignore`. Não coloque senhas, tokens ou
-outras credenciais nele.
+outras credenciais nele. Para usar o Prism, substitua o valor por
+`http://127.0.0.1:4010`.
 
 Depois de alterar o `.env`, reinicie o Vite:
 
@@ -112,17 +133,17 @@ api.get('/api/servicos')
 api.post('/api/agendamentos', dadosAgendamento)
 ```
 
-Com esta configuração:
+Com o backend Laravel configurado na porta `8000`:
 
 ```env
-VITE_API_URL=http://127.0.0.1:4010
+VITE_API_URL=http://127.0.0.1:8000
 ```
 
 as URLs finais serão:
 
 ```text
-GET  http://127.0.0.1:4010/api/servicos
-POST http://127.0.0.1:4010/api/agendamentos
+GET  http://127.0.0.1:8000/api/servicos
+POST http://127.0.0.1:8000/api/agendamentos
 ```
 
 Não coloque `/api` no valor de `VITE_API_URL`, pois o serviço já acrescenta
@@ -172,7 +193,7 @@ Se a URL for válida, mantenha esse terminal aberto. O Prism deve escutar em:
 http://127.0.0.1:4010
 ```
 
-O px` pode baixar o Prism na primeira execução. Não é necessário adicionar o
+O `npx` pode baixar o Prism na primeira execução. Não é necessário adicionar o
 Prism ao `package.json` para usar esse comando.
 
 ### Iniciando o Prism com um arquivo baixado
@@ -212,7 +233,7 @@ Abra essa URL no navegador.
 
 Fluxo recomendado:
 
-1. Inicie o Prism na porta `4010`.
+1. Inicie o backend Laravel ou o Prism na porta configurada em `VITE_API_URL`.
 2. Confirme que a API responde.
 3. Inicie o Vite.
 4. Acesse a página principal.
@@ -220,7 +241,7 @@ Fluxo recomendado:
 
 ## Testando a API antes do frontend
 
-No PowerShell:
+Para testar o mock Prism no PowerShell:
 
 ```powershell
 Invoke-WebRequest `
@@ -490,12 +511,11 @@ Rotas atuais:
 - Horários indisponíveis retornados com `422` ainda precisam disparar uma nova
   consulta automática dos horários do dia.
 - A regra de cancelamento mínimo de duas horas ainda não é exibida na tela.
-- Os arquivos selecionados no campo de anexos ainda não são enviados ao backend.
-  Eles ficam apenas no estado do formulário; o fluxo completo de
-  `multipart/form-data`, armazenamento e associação em `anexo_agendamento`
-  ainda precisa ser implementado.
-- O modal administrativo já possui a área de anexos, mas exibirá
-  “Nenhum anexo” enquanto o upload não estiver implementado no backend.
+- Quando há anexos, o frontend envia o agendamento como
+  `multipart/form-data`, incluindo os campos `servicos[]` e `anexos[]`.
+  O armazenamento e a associação dos arquivos dependem do backend.
+- O modal administrativo exibe os anexos retornados pela API; se a API não
+  retornar arquivos para o agendamento, ele exibirá “Nenhum anexo”.
 
 ## Problemas comuns
 
@@ -509,7 +529,7 @@ Test-NetConnection 127.0.0.1 -Port 4010
 
 Se falhar, inicie o Prism e deixe o processo aberto.
 
-### Erro ot Found` ao baixar o OpenAPI
+### Erro `Not Found` ao baixar o OpenAPI
 
 Normalmente ocorre quando foi usada uma URL como:
 
@@ -562,9 +582,9 @@ http://127.0.0.1:5173
 ```text
 [ ] Node.js e npm instalados
 [ ] npm install executado
-[ ] .env criado com VITE_API_URL=http://127.0.0.1:4010
+[ ] .env criado com a URL do backend ou do mock
 [ ] URL raw do openapi.yaml confirmada
-[ ] Prism executando na porta 4010
+[ ] Backend ou Prism executando na porta configurada
 [ ] GET /api/servicos respondendo JSON
 [ ] Vite executando com npm run dev
 [ ] Frontend aberto em http://localhost:5173
